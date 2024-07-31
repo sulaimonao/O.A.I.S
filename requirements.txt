@@ -1,0 +1,6 @@
+openai
+python-dotenv
+flask
+flask-socketio
+eventlet
+google-generativeai
