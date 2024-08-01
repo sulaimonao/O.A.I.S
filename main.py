@@ -1,5 +1,7 @@
 import os
 import json
+import requests
+from datetime import datetime
 from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO, emit
 from openai import OpenAI
@@ -32,6 +34,25 @@ def upload():
         file.save(filepath)
         return jsonify({'filename': file.filename})
 
+def generate_image_via_llm(prompt, model, provider):
+    try:
+        if provider == 'openai':
+            response = openai_client.Image.create(
+                prompt=prompt,
+                n=1,
+                size="1024x1024"
+            )
+            image_url = response['data'][0]['url']
+        elif provider == 'google':
+            genai_model = genai.GenerativeModel(model)
+            response = genai_model.generate_content(prompt)
+            image_url = response.text  # Assuming Google Gemini's response includes the image URL
+        else:
+            return {'error': 'Unsupported provider'}
+        return {'image_url': image_url}
+    except Exception as e:
+        return {'error': str(e)}
+
 @socketio.on('message')
 def handle_message(data):
     data = json.loads(data)
@@ -54,7 +75,14 @@ def handle_message(data):
             )
             content = response['choices'][0]['message']['content']
             history.append({"role": "assistant", "content": content})
-            emit('message', {'user': message, 'assistant': content})
+            if "generate image" in message.lower():
+                image_response = generate_image_via_llm(content, model, provider)
+                if 'image_url' in image_response:
+                    emit('message', {'user': message, 'assistant': content, 'image_url': image_response['image_url']})
+                else:
+                    emit('message', {'user': message, 'assistant': content, 'error': image_response['error']})
+            else:
+                emit('message', {'user': message, 'assistant': content})
         except Exception as e:
             emit('message', {'error': str(e)})
     elif provider == 'google':
@@ -67,7 +95,14 @@ def handle_message(data):
             else:
                 response = genai_model.generate_content(message)
             content = response.text
-            emit('message', {'user': message, 'assistant': content})
+            if "generate image" in message.lower():
+                image_response = generate_image_via_llm(content, model, provider)
+                if 'image_url' in image_response:
+                    emit('message', {'user': message, 'assistant': content, 'image_url': image_response['image_url']})
+                else:
+                    emit('message', {'user': message, 'assistant': content, 'error': image_response['error']})
+            else:
+                emit('message', {'user': message, 'assistant': content})
         except Exception as e:
             emit('message', {'error': str(e)})
 
