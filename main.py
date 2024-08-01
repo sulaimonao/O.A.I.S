@@ -34,22 +34,21 @@ def upload():
         file.save(filepath)
         return jsonify({'filename': file.filename})
 
-def generate_image_via_llm(prompt, model, provider):
+def generate_code_via_llm(prompt, model, provider):
     try:
         if provider == 'openai':
-            response = openai_client.Image.create(
+            response = openai_client.Completions.create(
                 prompt=prompt,
-                n=1,
-                size="1024x1024"
+                model=model
             )
-            image_url = response['data'][0]['url']
+            code = response['choices'][0]['text']
         elif provider == 'google':
             genai_model = genai.GenerativeModel(model)
             response = genai_model.generate_content(prompt)
-            image_url = response.text  # Assuming Google Gemini's response includes the image URL
+            code = response.text
         else:
             return {'error': 'Unsupported provider'}
-        return {'image_url': image_url}
+        return {'code': code}
     except Exception as e:
         return {'error': str(e)}
 
@@ -62,7 +61,13 @@ def handle_message(data):
     filename = data.get('filename')
     print(f'Message: {message}, Model: {model}, Provider: {provider}, Filename: {filename}')
     
-    if provider == 'openai':
+    if "generate code" in message.lower():
+        code_response = generate_code_via_llm(message, model, provider)
+        if 'code' in code_response:
+            emit('message', {'user': message, 'code': code_response['code']})
+        else:
+            emit('message', {'user': message, 'error': code_response['error']})
+    elif provider == 'openai':
         history = [{"role": "system", "content": "You are a helpful assistant."}]
         history.append({"role": "user", "content": message})
         try:
