@@ -69,6 +69,9 @@ $(document).ready(function() {
             if (data.image_url) {
                 $('#chat-history').append('<img src="' + data.image_url + '" class="generated-image" alt="Generated Image">');
             }
+            if (data.code_output) {
+                $('#chat-history').append('<pre class="code-output">' + data.code_output + '</pre>');
+            }
             $('#chat-history').scrollTop($('#chat-history')[0].scrollHeight);
         }
     });
