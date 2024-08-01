@@ -1,6 +1,6 @@
 import os
 import json
-import requests
+import subprocess  # For executing code
 from datetime import datetime
 from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO, emit
@@ -34,6 +34,28 @@ def upload():
         file.save(filepath)
         return jsonify({'filename': file.filename})
 
+@app.route('/execute_code', methods=['POST'])
+def execute_code():
+    data = request.json
+    code = data.get('code')
+    language = data.get('language')
+    if not code or not language:
+        return jsonify({'error': 'Code or language not provided'})
+
+    try:
+        if language == 'python':
+            result = subprocess.run(['python', '-c', code], capture_output=True, text=True)
+        elif language == 'bash':
+            result = subprocess.run(['bash', '-c', code], capture_output=True, text=True)
+        else:
+            return jsonify({'error': 'Unsupported language'})
+
+        output = result.stdout + result.stderr
+        return jsonify({'output': output})
+
+    except Exception as e:
+        return jsonify({'error': str(e)})
+
 def generate_image_via_llm(prompt, model, provider):
     try:
         if provider == 'openai':
@@ -46,7 +68,7 @@ def generate_image_via_llm(prompt, model, provider):
         elif provider == 'google':
             genai_model = genai.GenerativeModel(model)
             response = genai_model.generate_content(prompt)
-            image_url = response.text  # Assuming Google Gemini's response includes the image URL
+            image_url = response.text
         else:
             return {'error': 'Unsupported provider'}
         return {'image_url': image_url}
