@@ -3,50 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Code Interpreter</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>O.A.I.S Chat Room</title>
+    <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
     <div id="container">
         <div id="settings-sidebar">
             <h2>Settings</h2>
             <form id="settings-form">
-                <label for="model-select">Model:</label>
-                <select id="model-select">
-                    <option value="gpt-4o">GPT-4</option>
-                    <!-- Add other models here -->
-                </select>
-                <label for="provider-select">Provider:</label>
+                <label for="provider-select">Choose Provider:</label>
                 <select id="provider-select">
                     <option value="openai">OpenAI</option>
                     <option value="google">Google</option>
                 </select>
-                <button type="button" id="save-settings">Save Settings</button>
-            </form>
-            <h2>Execute Code</h2>
-            <form id="code-form">
-                <label for="language-select">Language:</label>
-                <select id="language-select">
-                    <option value="python">Python</option>
-                    <option value="bash">Bash</option>
-                    <!-- Add other languages here -->
+                <label for="model-select">Choose Model:</label>
+                <select id="model-select">
+                    <option value="gpt-4o">GPT-4o</option>
+                    <option value="gpt-4o-mini">GPT-4o-mini</option>
+                    <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                    <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
                 </select>
-                <textarea id="code-input" rows="10" cols="30"></textarea>
-                <button type="button" id="execute-code">Execute Code</button>
+                <button type="button" id="save-settings">Save</button>
             </form>
-            <pre id="code-output"></pre>
         </div>
         <div id="chat-container">
             <div id="chat-history"></div>
-            <form>
-                <textarea id="user-input" rows="4" cols="50"></textarea>
+            <form id="chat-form">
+                <input type="text" id="user-input" placeholder="Type your message here..." autocomplete="off" required>
                 <input type="file" id="file-input">
                 <button type="submit">Send</button>
             </form>
         </div>
     </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.2/socket.io.min.js"></script>
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
+    <script src="/static/script.js"></script>
 </body>
 </html>

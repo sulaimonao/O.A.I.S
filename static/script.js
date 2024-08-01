@@ -10,25 +10,6 @@ $(document).ready(function() {
         alert('Settings saved! Using provider: ' + selectedProvider + ', model: ' + selectedModel);
     });
 
-    // Handle code execution
-    $('#execute-code').click(function() {
-        const code = $('#code-input').val();
-        const language = $('#language-select').val();
-        $.ajax({
-            url: '/execute_code',
-            type: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({ code: code, language: language }),
-            success: function(response) {
-                if (response.error) {
-                    alert(response.error);
-                } else {
-                    $('#code-output').text(response.output);
-                }
-            }
-        });
-    });
-
     $('form').submit(function(event) {
         event.preventDefault();
         const message = $('#user-input').val();
@@ -68,9 +49,6 @@ $(document).ready(function() {
             $('#chat-history').append('<div class="bot-response">' + data.assistant + '</div>');
             if (data.image_url) {
                 $('#chat-history').append('<img src="' + data.image_url + '" class="generated-image" alt="Generated Image">');
-            }
-            if (data.code_output) {
-                $('#chat-history').append('<pre class="code-output">' + data.code_output + '</pre>');
             }
             $('#chat-history').scrollTop($('#chat-history')[0].scrollHeight);
         }
