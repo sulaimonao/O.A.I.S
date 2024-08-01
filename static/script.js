@@ -10,6 +10,25 @@ $(document).ready(function() {
         alert('Settings saved! Using provider: ' + selectedProvider + ', model: ' + selectedModel);
     });
 
+    // Handle code execution
+    $('#execute-code').click(function() {
+        const code = $('#code-input').val();
+        const language = $('#language-select').val();
+        $.ajax({
+            url: '/execute_code',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ code: code, language: language }),
+            success: function(response) {
+                if (response.error) {
+                    alert(response.error);
+                } else {
+                    $('#code-output').text(response.output);
+                }
+            }
+        });
+    });
+
     $('form').submit(function(event) {
         event.preventDefault();
         const message = $('#user-input').val();
