@@ -47,6 +47,9 @@ $(document).ready(function() {
         } else {
             $('#chat-history').append('<div class="user-message">' + data.user + '</div>');
             $('#chat-history').append('<div class="bot-response">' + data.assistant + '</div>');
+            if (data.image_url) {
+                $('#chat-history').append('<img src="' + data.image_url + '" class="generated-image" alt="Generated Image">');
+            }
             $('#chat-history').scrollTop($('#chat-history')[0].scrollHeight);
         }
     });
