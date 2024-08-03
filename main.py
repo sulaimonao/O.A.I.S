@@ -1,7 +1,5 @@
 import os
 import json
-import requests
-from datetime import datetime
 from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO, emit
 from openai import OpenAI
@@ -43,11 +41,12 @@ def generate_code_via_llm(prompt, model, provider):
             )
             code = response['choices'][0]['text']
         elif provider == 'google':
-            response = genai.generate_text(
-                model=model,
-                prompt=prompt
-            )
-            code = response.result
+            # Ensure the model name starts with 'models/' or 'tunedModels/'
+            if not model.startswith('models/') and not model.startswith('tunedModels/'):
+                model = 'models/' + model
+            genai_model = genai.GenerativeModel(model)
+            response = genai_model.generate_content(prompt)
+            code = response.text
         else:
             return {'error': 'Unsupported provider'}
         return {'code': code}
@@ -58,7 +57,7 @@ def generate_code_via_llm(prompt, model, provider):
 def handle_message(data):
     data = json.loads(data)
     message = data['message']
-    model = data['model']
+    model = data.get('model') or (Config.GOOGLE_MODEL if data['provider'] == 'google' else Config.OPENAI_MODEL)
     provider = data['provider']
     filename = data.get('filename')
     print(f'Message: {message}, Model: {model}, Provider: {provider}, Filename: {filename}')
@@ -70,15 +69,15 @@ def handle_message(data):
         else:
             emit('message', {'user': message, 'error': code_response['error']})
     elif provider == 'openai':
-        history = [{"role": "system", "content": "You are a helpful assistant."}]
+        history = [{"role": "system", "content": Config.SYSTEM_PROMPT}]
         history.append({"role": "user", "content": message})
         try:
             response = openai_client.Chat.completions.create(
                 model=model,
                 messages=history,
-                max_tokens=4000,
-                temperature=0.9,
-                top_p=1.0
+                max_tokens=Config.MAX_TOKENS,
+                temperature=Config.TEMPERATURE,
+                top_p=Config.TOP_P
             )
             content = response['choices'][0]['message']['content']
             history.append({"role": "assistant", "content": content})
@@ -94,19 +93,14 @@ def handle_message(data):
             emit('message', {'error': str(e)})
     elif provider == 'google':
         try:
+            genai_model = genai.GenerativeModel(model)
             if filename:
                 filepath = os.path.join('uploads', filename)
                 file = genai.upload_file(filepath)
-                response = genai.generate_text(
-                    model=model,
-                    prompt=[message, file]
-                )
+                response = genai_model.generate_content([message, file])
             else:
-                response = genai.generate_text(
-                    model=model,
-                    prompt=message
-                )
-            content = response.result
+                response = genai_model.generate_content(message)
+            content = response.text
             if "generate image" in message.lower():
                 image_response = generate_image_via_llm(content, model, provider)
                 if 'image_url' in image_response:
