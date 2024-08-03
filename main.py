@@ -1,52 +1,23 @@
 import os
 import json
-import execnet
 from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO, emit
 from openai import OpenAI
 import google.generativeai as genai
 from config import Config
+from tools.intent_parser import parse_intent, handle_write_poem, handle_analyze_data
+from tools.code_execution import execute_code
+from tools.file_operations import read_file, write_file
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app)
-workspace_dir = 'virtual_workspace'
 
 # Initialize OpenAI client
 openai_client = OpenAI(api_key=Config.OPENAI_API_KEY)
 
 # Configure Google Gemini
 genai.configure(api_key=Config.GOOGLE_API_KEY)
-
-# Ensure the workspace directory exists
-os.makedirs(workspace_dir, exist_ok=True)
-
-def read_file(file_path):
-    try:
-        with open(os.path.join(workspace_dir, file_path), 'r') as file:
-            return file.read()
-    except Exception as e:
-        return str(e)
-
-def write_file(file_path, content):
-    try:
-        with open(os.path.join(workspace_dir, file_path), 'w') as file:
-            file.write(content)
-        return "File written successfully"
-    except Exception as e:
-        return str(e)
-
-def execute_code(code):
-    gw = execnet.makegateway()
-    channel = gw.remote_exec("""
-        def execute_remote(code):
-            exec(code, {'__builtins__': {}})
-            return "Code executed successfully"
-
-        channel.send(execute_remote(channel.receive()))
-    """)
-    channel.send(code)
-    return channel.receive()
 
 @app.route('/')
 def index():
@@ -76,7 +47,6 @@ def generate_code_via_llm(prompt, model, provider, config):
             )
             code = response['choices'][0]['text']
         elif provider == 'google':
-            # Ensure the model name starts with 'models/' or 'tunedModels/'
             if not model.startswith('models/') and not model.startswith('tunedModels/'):
                 model = 'models/' + model
             genai_model = genai.GenerativeModel(model)
@@ -110,9 +80,15 @@ def handle_message(data):
         emit('message', {'error': 'Invalid model for the selected provider.'})
         return
 
-    print(f'Message: {message}, Model: {model}, Provider: {provider}, Filename: {filename}, Config: {config}')
+    intent = parse_intent(message)
     
-    if "generate code" in message.lower():
+    if intent == "write_poem":
+        result = handle_write_poem(message)
+        emit('message', {'user': message, 'result': result})
+    elif intent == "analyze_data":
+        result = handle_analyze_data(message)
+        emit('message', {'user': message, 'result': result})
+    elif "generate code" in message.lower():
         code_response = generate_code_via_llm(message, model, provider, config)
         if 'code' in code_response:
             result = execute_code(code_response['code'])
