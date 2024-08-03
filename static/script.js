@@ -7,8 +7,8 @@ $(document).ready(function() {
     function updateModelOptions(provider) {
         var modelOptions = '';
         if (provider === 'openai') {
-            modelOptions += '<option value="gpt-4">GPT-4</option>';
-            modelOptions += '<option value="gpt-4-mini">GPT-4-mini</option>';
+            modelOptions += '<option value="gpt-4o">GPT-4o</option>';
+            modelOptions += '<option value="gpt-4o-mini">GPT-4o-mini</option>';
         } else if (provider === 'google') {
             modelOptions += '<option value="gemini-1.5-pro">Gemini 1.5 Pro</option>';
             modelOptions += '<option value="gemini-1.5-flash">Gemini 1.5 Flash</option>';
@@ -50,6 +50,17 @@ $(document).ready(function() {
         if (fileInput.files.length > 0) {
             const file = fileInput.files[0];
             const formData = new FormData();
+            const customEngine = $('#custom-engine').val();
+            const config = {
+            temperature: $('#temperature').val(),
+            maxTokens: $('#max-tokens').val(),
+            topP: $('#top-p').val()
+        };
+
+        let modelToUse = selectedModel;
+        if (selectedModel === 'custom') {
+            modelToUse = customEngine;
+        }
             formData.append('file', file);
             $.ajax({
                 url: '/upload',
