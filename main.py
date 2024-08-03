@@ -70,11 +70,12 @@ def generate_code_via_llm(prompt, model, provider, config):
             response = chat_session.send_message(prompt)
             if response.candidates and response.candidates[0].content:
                 code = response.candidates[0].content
+                code_json = json.dumps(code, default=str)  # Ensure the content is JSON serializable
             else:
                 return {'error': 'No valid content returned from Google Generative AI.'}
         else:
             return {'error': 'Unsupported provider'}
-        return {'code': code}
+        return {'code': code_json}
     except Exception as e:
         print(f'Error generating code: {str(e)}')
         return {'error': str(e)}
@@ -166,17 +167,18 @@ def handle_message(data):
             response = chat_session.send_message(message)
             if response.candidates and response.candidates[0].content:
                 content = response.candidates[0].content
+                content_json = json.dumps(content, default=str)  # Ensure the content is JSON serializable
                 print(f'Google Response: {content}')
                 if "generate image" in message.lower():
                     image_response = generate_image_via_llm(content, model, provider, config)
                     if 'image_url' in image_response:
-                        emit('message', {'user': message, 'assistant': content, 'image_url': image_response['image_url']})
+                        emit('message', {'user': message, 'assistant': content_json, 'image_url': image_response['image_url']})
                         print(f'Emitting image response: {image_response["image_url"]}')
                     else:
-                        emit('message', {'user': message, 'assistant': content, 'error': image_response['error']})
+                        emit('message', {'user': message, 'assistant': content_json, 'error': image_response['error']})
                         print(f'Error emitting image response: {image_response["error"]}')
                 else:
-                    emit('message', {'user': message, 'assistant': content})
+                    emit('message', {'user': message, 'assistant': content_json})
                     print(f'Emitting assistant response: {content}')
             else:
                 emit('message', {'error': 'No valid content returned from Google Generative AI.'})

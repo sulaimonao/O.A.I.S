@@ -120,18 +120,3 @@ body {
     max-width: 100%;
     border-radius: 10px;
 }
-
-
-.copy-btn {
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    cursor: pointer;
-    margin: 10px 0;
-    border-radius: 5px;
-}
-
-.copy-btn:hover {
-    background-color: #45a049;
-}
