@@ -43,9 +43,11 @@ def generate_code_via_llm(prompt, model, provider):
             )
             code = response['choices'][0]['text']
         elif provider == 'google':
-            genai_model = genai.GenerativeModel(model)
-            response = genai_model.generate_content(prompt)
-            code = response.text
+            response = genai.generate_text(
+                model=model,
+                prompt=prompt
+            )
+            code = response.result
         else:
             return {'error': 'Unsupported provider'}
         return {'code': code}
@@ -71,7 +73,7 @@ def handle_message(data):
         history = [{"role": "system", "content": "You are a helpful assistant."}]
         history.append({"role": "user", "content": message})
         try:
-            response = openai_client.chat.completions.create(
+            response = openai_client.Chat.completions.create(
                 model=model,
                 messages=history,
                 max_tokens=4000,
@@ -92,14 +94,19 @@ def handle_message(data):
             emit('message', {'error': str(e)})
     elif provider == 'google':
         try:
-            genai_model = genai.GenerativeModel(model)
             if filename:
                 filepath = os.path.join('uploads', filename)
                 file = genai.upload_file(filepath)
-                response = genai_model.generate_content([message, file])
+                response = genai.generate_text(
+                    model=model,
+                    prompt=[message, file]
+                )
             else:
-                response = genai_model.generate_content(message)
-            content = response.text
+                response = genai.generate_text(
+                    model=model,
+                    prompt=message
+                )
+            content = response.result
             if "generate image" in message.lower():
                 image_response = generate_image_via_llm(content, model, provider)
                 if 'image_url' in image_response:
