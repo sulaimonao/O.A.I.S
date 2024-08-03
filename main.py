@@ -1,17 +1,20 @@
 import os
 import json
+import logging
 from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO, emit
 from openai import OpenAI
 import google.generativeai as genai
 from config import Config
-from tools.intent_parser import parse_intent, handle_write_poem, handle_analyze_data
+from tools.intent_parser import parse_intent, handle_write_to_file, handle_execute_code
 from tools.code_execution import execute_code
 from tools.file_operations import read_file, write_file
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app)
+
+logging.basicConfig(level=logging.DEBUG)
 
 # Initialize OpenAI client
 openai_client = OpenAI(api_key=Config.OPENAI_API_KEY)
@@ -56,7 +59,7 @@ def generate_code_via_llm(prompt, model, provider, config):
             return {'error': 'Unsupported provider'}
         return {'code': code}
     except Exception as e:
-        print(f'Error generating code: {str(e)}')
+        logging.error(f'Error generating code: {str(e)}')
         return {'error': str(e)}
 
 @socketio.on('message')
@@ -80,24 +83,40 @@ def handle_message(data):
         emit('message', {'error': 'Invalid model for the selected provider.'})
         return
 
+    logging.debug(f"Message: {message}, Model: {model}, Provider: {provider}, Filename: {filename}, Config: {config}")
+
     intent = parse_intent(message)
     
-    if intent == "write_poem":
-        result = handle_write_poem(message)
-        emit('message', {'user': message, 'result': result})
-    elif intent == "analyze_data":
-        result = handle_analyze_data(message)
-        emit('message', {'user': message, 'result': result})
+    if intent == "write_to_file":
+        # Use the LLM to generate the content dynamically
+        content_response = generate_code_via_llm(message, model, provider, config)
+        if 'code' in content_response:
+            content = content_response['code']
+            result = handle_write_to_file(message, content)
+            emit('message', {'user': message, 'result': result})
+            logging.debug(f"Emitting write_to_file result: {result}")
+        else:
+            emit('message', {'user': message, 'error': content_response['error']})
+            logging.error(f'Error generating content: {content_response["error"]}')
+    elif intent == "execute_code":
+        code_response = generate_code_via_llm(message, model, provider, config)
+        if 'code' in code_response:
+            result = handle_execute_code(message, code_response['code'])
+            emit('message', {'user': message, 'result': result})
+            logging.debug(f"Emitting execute_code result: {result}")
+        else:
+            emit('message', {'user': message, 'error': code_response['error']})
+            logging.error(f'Error generating code: {code_response["error"]}')
     elif "generate code" in message.lower():
         code_response = generate_code_via_llm(message, model, provider, config)
         if 'code' in code_response:
             result = execute_code(code_response['code'])
             write_file('output.txt', result)
             emit('message', {'user': message, 'code': code_response['code'], 'result': result})
-            print(f'Emitting code response: {code_response["code"]}')
+            logging.debug(f'Emitting code response: {code_response["code"]}')
         else:
             emit('message', {'user': message, 'error': code_response['error']})
-            print(f'Error emitting code response: {code_response["error"]}')
+            logging.error(f'Error emitting code response: {code_response["error"]}')
     elif provider == 'openai':
         history = [{"role": "system", "content": Config.SYSTEM_PROMPT}]
         history.append({"role": "user", "content": message})
@@ -111,20 +130,20 @@ def handle_message(data):
             )
             content = response['choices'][0]['message']['content']
             history.append({"role": "assistant", "content": content})
-            print(f'OpenAI Response: {content}')
+            logging.debug(f'OpenAI Response: {content}')
             if "generate image" in message.lower():
                 image_response = generate_image_via_llm(content, model, provider, config)
                 if 'image_url' in image_response:
                     emit('message', {'user': message, 'assistant': content, 'image_url': image_response['image_url']})
-                    print(f'Emitting image response: {image_response["image_url"]}')
+                    logging.debug(f'Emitting image response: {image_response["image_url"]}')
                 else:
                     emit('message', {'user': message, 'assistant': content, 'error': image_response['error']})
-                    print(f'Error emitting image response: {image_response["error"]}')
+                    logging.error(f'Error emitting image response: {image_response["error"]}')
             else:
                 emit('message', {'user': message, 'assistant': content})
-                print(f'Emitting assistant response: {content}')
+                logging.debug(f'Emitting assistant response: {content}')
         except Exception as e:
-            print(f'Error with OpenAI: {str(e)}')
+            logging.error(f'Error with OpenAI: {str(e)}')
             emit('message', {'error': str(e)})
     elif provider == 'google':
         try:
@@ -136,23 +155,25 @@ def handle_message(data):
             else:
                 response = genai_model.generate_content(message)
             content = response.text
-            print(f'Google Response: {content}')
+            logging.debug(f'Google Response: {content}')
             if "generate image" in message.lower():
                 image_response = generate_image_via_llm(content, model, provider, config)
                 if 'image_url' in image_response:
                     emit('message', {'user': message, 'assistant': content, 'image_url': image_response['image_url']})
-                    print(f'Emitting image response: {image_response["image_url"]}')
+                    logging.debug(f'Emitting image response: {image_response["image_url"]}')
                 else:
                     emit('message', {'user': message, 'assistant': content, 'error': image_response['error']})
-                    print(f'Error emitting image response: {image_response["error"]}')
+                    logging.error(f'Error emitting image response: {image_response["error"]}')
             else:
                 emit('message', {'user': message, 'assistant': content})
-                print(f'Emitting assistant response: {content}')
+                logging.debug(f'Emitting assistant response: {content}')
         except Exception as e:
-            print(f'Error with Google: {str(e)}')
+            logging.error(f'Error with Google: {str(e)}')
             emit('message', {'error': str(e)})
 
 if __name__ == '__main__':
     if not os.path.exists('uploads'):
         os.makedirs('uploads')
+    if not os.path.exists('virtual_workspace'):
+        os.makedirs('virtual_workspace')
     socketio.run(app, debug=True)
