@@ -1,5 +1,6 @@
 import os
 import json
+import execnet
 from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO, emit
 from openai import OpenAI
@@ -9,12 +10,43 @@ from config import Config
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app)
+workspace_dir = 'virtual_workspace'
 
 # Initialize OpenAI client
 openai_client = OpenAI(api_key=Config.OPENAI_API_KEY)
 
 # Configure Google Gemini
 genai.configure(api_key=Config.GOOGLE_API_KEY)
+
+# Ensure the workspace directory exists
+os.makedirs(workspace_dir, exist_ok=True)
+
+def read_file(file_path):
+    try:
+        with open(os.path.join(workspace_dir, file_path), 'r') as file:
+            return file.read()
+    except Exception as e:
+        return str(e)
+
+def write_file(file_path, content):
+    try:
+        with open(os.path.join(workspace_dir, file_path), 'w') as file:
+            file.write(content)
+        return "File written successfully"
+    except Exception as e:
+        return str(e)
+
+def execute_code(code):
+    gw = execnet.makegateway()
+    channel = gw.remote_exec("""
+        def execute_remote(code):
+            exec(code, {'__builtins__': {}})
+            return "Code executed successfully"
+
+        channel.send(execute_remote(channel.receive()))
+    """)
+    channel.send(code)
+    return channel.receive()
 
 @app.route('/')
 def index():
@@ -83,7 +115,9 @@ def handle_message(data):
     if "generate code" in message.lower():
         code_response = generate_code_via_llm(message, model, provider, config)
         if 'code' in code_response:
-            emit('message', {'user': message, 'code': code_response['code']})
+            result = execute_code(code_response['code'])
+            write_file('output.txt', result)
+            emit('message', {'user': message, 'code': code_response['code'], 'result': result})
             print(f'Emitting code response: {code_response["code"]}')
         else:
             emit('message', {'user': message, 'error': code_response['error']})

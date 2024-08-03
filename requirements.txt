@@ -4,3 +4,4 @@ flask
 flask-socketio
 eventlet
 google-generativeai
+execnet
