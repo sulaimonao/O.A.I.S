@@ -1,7 +1,7 @@
 import os
 import json
 import logging
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, session
 from flask_socketio import SocketIO, emit
 from openai import OpenAI
 import google.generativeai as genai
@@ -9,6 +9,7 @@ from config import Config
 from tools.intent_parser import parse_intent, handle_write_to_file, handle_execute_code
 from tools.code_execution import execute_code
 from tools.file_operations import read_file, write_file
+from tools.database import init_db, add_message, get_conversation_history
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
@@ -22,8 +23,15 @@ openai_client = OpenAI(api_key=Config.OPENAI_API_KEY)
 # Configure Google Gemini
 genai.configure(api_key=Config.GOOGLE_API_KEY)
 
+# Initialize the database
+init_db()
+
+# Cache for storing previously generated code and results
+resource_cache = {}
+
 @app.route('/')
 def index():
+    session['id'] = os.urandom(24).hex()
     return render_template('index.html')
 
 @app.route('/upload', methods=['POST'])
@@ -39,6 +47,11 @@ def upload():
         return jsonify({'filename': file.filename})
 
 def generate_code_via_llm(prompt, model, provider, config):
+    cache_key = f"{provider}:{model}:{prompt}"
+    if cache_key in resource_cache:
+        logging.debug(f"Cache hit for prompt: {prompt}")
+        return resource_cache[cache_key]
+
     try:
         if provider == 'openai':
             response = openai_client.Completions.create(
@@ -57,6 +70,8 @@ def generate_code_via_llm(prompt, model, provider, config):
             code = response.text
         else:
             return {'error': 'Unsupported provider'}
+        
+        resource_cache[cache_key] = {'code': code}
         return {'code': code}
     except Exception as e:
         logging.error(f'Error generating code: {str(e)}')
@@ -64,6 +79,12 @@ def generate_code_via_llm(prompt, model, provider, config):
 
 @socketio.on('message')
 def handle_message(data):
+    session_id = session.get('id')
+    user_id = session_id  # This could be enhanced to use actual user IDs in a real system
+
+    if 'user_profile' not in session:
+        session['user_profile'] = {'name': None, 'awaiting_confirmation': False}
+
     data = json.loads(data)
     message = data['message']
     model = data.get('model') or (Config.GOOGLE_MODEL if data['provider'] == 'google' else Config.OPENAI_MODEL)
@@ -85,14 +106,50 @@ def handle_message(data):
 
     logging.debug(f"Message: {message}, Model: {model}, Provider: {provider}, Filename: {filename}, Config: {config}")
 
+    add_message(session_id, user_id, 'user', message, provider)
+
+    # Handle user introduction and confirmation
+    if session['user_profile']['awaiting_confirmation']:
+        if message.lower() in ['yes', 'y']:
+            session['user_profile']['awaiting_confirmation'] = False
+            response_message = f"Great! I will remember your name, {session['user_profile']['name']}."
+            add_message(session_id, user_id, 'assistant', response_message, provider)
+            emit('message', {'user': message, 'assistant': response_message})
+        else:
+            session['user_profile']['name'] = None
+            session['user_profile']['awaiting_confirmation'] = False
+            response_message = "Okay, I won't remember your name."
+            add_message(session_id, user_id, 'assistant', response_message, provider)
+            emit('message', {'user': message, 'assistant': response_message})
+        return
+
+    if "my name is" in message.lower():
+        name = message.split("my name is", 1)[1].strip().split(' ', 1)[0]
+        session['user_profile']['name'] = name
+        session['user_profile']['awaiting_confirmation'] = True
+        response_message = f"Did I get that right? Is your name {name}? Please reply with 'yes' or 'no'."
+        add_message(session_id, user_id, 'assistant', response_message, provider)
+        emit('message', {'user': message, 'assistant': response_message})
+        return
+
+    if "what is my name" in message.lower() or "do you remember me" in message.lower():
+        name = session['user_profile']['name']
+        if name:
+            response_message = f"Your name is {name}."
+        else:
+            response_message = "I don't know your name. Please tell me your name by saying 'My name is [Your Name]'."
+        add_message(session_id, user_id, 'assistant', response_message, provider)
+        emit('message', {'user': message, 'assistant': response_message})
+        return
+
     intent = parse_intent(message)
     
     if intent == "write_to_file":
-        # Use the LLM to generate the content dynamically
         content_response = generate_code_via_llm(message, model, provider, config)
         if 'code' in content_response:
             content = content_response['code']
             result = handle_write_to_file(message, content)
+            add_message(session_id, user_id, 'assistant', result, provider)
             emit('message', {'user': message, 'result': result})
             logging.debug(f"Emitting write_to_file result: {result}")
         else:
@@ -102,6 +159,7 @@ def handle_message(data):
         code_response = generate_code_via_llm(message, model, provider, config)
         if 'code' in code_response:
             result = handle_execute_code(message, code_response['code'])
+            add_message(session_id, user_id, 'assistant', result, provider)
             emit('message', {'user': message, 'result': result})
             logging.debug(f"Emitting execute_code result: {result}")
         else:
@@ -112,63 +170,41 @@ def handle_message(data):
         if 'code' in code_response:
             result = execute_code(code_response['code'])
             write_file('output.txt', result)
+            add_message(session_id, user_id, 'assistant', result, provider)
             emit('message', {'user': message, 'code': code_response['code'], 'result': result})
             logging.debug(f'Emitting code response: {code_response["code"]}')
         else:
             emit('message', {'user': message, 'error': code_response['error']})
             logging.error(f'Error emitting code response: {code_response["error"]}')
-    elif provider == 'openai':
-        history = [{"role": "system", "content": Config.SYSTEM_PROMPT}]
+    else:
+        history = get_conversation_history(session_id)
+        history.append({"role": "system", "content": Config.SYSTEM_PROMPT})
         history.append({"role": "user", "content": message})
         try:
-            response = openai_client.Chat.completions.create(
-                model=model,
-                messages=history,
-                max_tokens=config.get('maxTokens', Config.MAX_TOKENS),
-                temperature=config.get('temperature', Config.TEMPERATURE),
-                top_p=config.get('topP', Config.TOP_P)
-            )
-            content = response['choices'][0]['message']['content']
-            history.append({"role": "assistant", "content": content})
-            logging.debug(f'OpenAI Response: {content}')
-            if "generate image" in message.lower():
-                image_response = generate_image_via_llm(content, model, provider, config)
-                if 'image_url' in image_response:
-                    emit('message', {'user': message, 'assistant': content, 'image_url': image_response['image_url']})
-                    logging.debug(f'Emitting image response: {image_response["image_url"]}')
+            if provider == 'openai':
+                response = openai_client.Chat.completions.create(
+                    model=model,
+                    messages=history,
+                    max_tokens=config.get('maxTokens', Config.MAX_TOKENS),
+                    temperature=config.get('temperature', Config.TEMPERATURE),
+                    top_p=config.get('topP', Config.TOP_P)
+                )
+                content = response['choices'][0]['message']['content']
+            elif provider == 'google':
+                genai_model = genai.GenerativeModel(model)
+                if filename:
+                    filepath = os.path.join('uploads', filename)
+                    file = genai.upload_file(filepath)
+                    response = genai_model.generate_content([message, file])
                 else:
-                    emit('message', {'user': message, 'assistant': content, 'error': image_response['error']})
-                    logging.error(f'Error emitting image response: {image_response["error"]}')
-            else:
-                emit('message', {'user': message, 'assistant': content})
-                logging.debug(f'Emitting assistant response: {content}')
+                    response = genai_model.generate_content(message)
+                content = response.text
+
+            add_message(session_id, user_id, 'assistant', content, provider)
+            logging.debug(f'{provider.capitalize()} Response: {content}')
+            emit('message', {'user': message, 'assistant': content})
         except Exception as e:
-            logging.error(f'Error with OpenAI: {str(e)}')
-            emit('message', {'error': str(e)})
-    elif provider == 'google':
-        try:
-            genai_model = genai.GenerativeModel(model)
-            if filename:
-                filepath = os.path.join('uploads', filename)
-                file = genai.upload_file(filepath)
-                response = genai_model.generate_content([message, file])
-            else:
-                response = genai_model.generate_content(message)
-            content = response.text
-            logging.debug(f'Google Response: {content}')
-            if "generate image" in message.lower():
-                image_response = generate_image_via_llm(content, model, provider, config)
-                if 'image_url' in image_response:
-                    emit('message', {'user': message, 'assistant': content, 'image_url': image_response['image_url']})
-                    logging.debug(f'Emitting image response: {image_response["image_url"]}')
-                else:
-                    emit('message', {'user': message, 'assistant': content, 'error': image_response['error']})
-                    logging.error(f'Error emitting image response: {image_response["error"]}')
-            else:
-                emit('message', {'user': message, 'assistant': content})
-                logging.debug(f'Emitting assistant response: {content}')
-        except Exception as e:
-            logging.error(f'Error with Google: {str(e)}')
+            logging.error(f'Error with {provider.capitalize()}: {str(e)}')
             emit('message', {'error': str(e)})
 
 if __name__ == '__main__':
