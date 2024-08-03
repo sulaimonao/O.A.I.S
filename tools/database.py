@@ -39,3 +39,16 @@ def get_conversation_history(session_id):
         'SELECT role, content FROM messages WHERE session_id = ? ORDER BY timestamp',
         [session_id]
     )
+
+def get_user_profile(session_id):
+    return query_db(
+        'SELECT name FROM user_profiles WHERE session_id = ?',
+        [session_id],
+        one=True
+    )
+
+def set_user_profile(session_id, name):
+    query_db(
+        'INSERT OR REPLACE INTO user_profiles (session_id, name) VALUES (?, ?)',
+        [session_id, name]
+    )

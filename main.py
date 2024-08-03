@@ -9,7 +9,7 @@ from config import Config
 from tools.intent_parser import parse_intent, handle_write_to_file, handle_execute_code
 from tools.code_execution import execute_code
 from tools.file_operations import read_file, write_file
-from tools.database import init_db, add_message, get_conversation_history
+from tools.database import init_db, add_message, get_conversation_history, get_user_profile, set_user_profile
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
@@ -112,6 +112,7 @@ def handle_message(data):
     if session['user_profile']['awaiting_confirmation']:
         if message.lower() in ['yes', 'y']:
             session['user_profile']['awaiting_confirmation'] = False
+            set_user_profile(session_id, session['user_profile']['name'])
             response_message = f"Great! I will remember your name, {session['user_profile']['name']}."
             add_message(session_id, user_id, 'assistant', response_message, provider)
             emit('message', {'user': message, 'assistant': response_message})
@@ -124,16 +125,28 @@ def handle_message(data):
         return
 
     if "my name is" in message.lower():
-        name = message.split("my name is", 1)[1].strip().split(' ', 1)[0]
-        session['user_profile']['name'] = name
-        session['user_profile']['awaiting_confirmation'] = True
-        response_message = f"Did I get that right? Is your name {name}? Please reply with 'yes' or 'no'."
-        add_message(session_id, user_id, 'assistant', response_message, provider)
-        emit('message', {'user': message, 'assistant': response_message})
+        parts = message.lower().split("my name is", 1)
+        if len(parts) > 1 and parts[1].strip():
+            name = parts[1].strip().split(' ')[0]
+            session['user_profile']['name'] = name
+            session['user_profile']['awaiting_confirmation'] = True
+            response_message = f"Did I get that right? Is your name {name}? Please reply with 'yes' or 'no'."
+            add_message(session_id, user_id, 'assistant', response_message, provider)
+            emit('message', {'user': message, 'assistant': response_message})
+        else:
+            response_message = "I didn't catch your name. Please tell me again by saying 'My name is [Your Name]'."
+            add_message(session_id, user_id, 'assistant', response_message, provider)
+            emit('message', {'user': message, 'assistant': response_message})
         return
 
     if "what is my name" in message.lower() or "do you remember me" in message.lower():
         name = session['user_profile']['name']
+        if not name:
+            profile = get_user_profile(session_id)
+            if profile:
+                name = profile[0]
+                session['user_profile']['name'] = name
+
         if name:
             response_message = f"Your name is {name}."
         else:
