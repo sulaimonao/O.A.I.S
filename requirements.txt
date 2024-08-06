@@ -1,4 +1,3 @@
-openai
 python-dotenv
 flask
 flask-socketio
@@ -6,3 +5,8 @@ eventlet
 google-generativeai
 execnet
 sqlite3
+pyusb
+pybluez
+bleak
+opencv-python
+pyaudio
