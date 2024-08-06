@@ -10,6 +10,7 @@ body {
 
 #container {
     display: flex;
+    flex-direction: column;
     width: 80%;
     max-width: 1200px;
     margin-top: 20px;
@@ -19,11 +20,41 @@ body {
     background-color: #fff;
 }
 
+#header {
+    display: flex;
+    align-items: center;
+    padding: 20px;
+    background-color: #fff;
+    color: #333;
+    width: 100%;
+    box-sizing: border-box;
+    border-bottom: 1px solid #ccc; /* Optional: Add a subtle border for separation */
+}
+
+#logo {
+    height: 50px;
+    margin-right: 20px;
+}
+
+#header h1 {
+    margin: 0;
+    font-size: 1.5em;
+}
+
+#main-content {
+    display: flex;
+    flex: 1;
+}
+
 #settings-sidebar {
     width: 25%;
     padding: 20px;
     border-right: 1px solid #ccc;
     background-color: #f9f9f9;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
 }
 
 #settings-sidebar h2 {
@@ -68,6 +99,7 @@ body {
     flex-direction: column;
     flex: 1;
     padding: 20px;
+    height: calc(100vh - 60px); /* Adjust based on header height */
 }
 
 #chat-history {
@@ -77,8 +109,6 @@ body {
     border: 1px solid #ccc;
     border-radius: 5px;
     background-color: #f1f1f1;
-    height: 400px;
-    width: 100%;
     margin-bottom: 10px;
 }
 
