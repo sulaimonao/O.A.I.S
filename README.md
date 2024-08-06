@@ -81,7 +81,7 @@ O.A.I.S is a powerful and flexible system designed to integrate language models 
 ### Customizing the System
 
 1. **Modifying Configurations:**
-   Edit the `config.py` file to update API keys and other configurations.
+   Edit the `config.py` and '.env' files to update API keys and other configurations.
 
 2. **Adding New Functionality:**
    Add new functions in the `tools/` directory and integrate them into `main.py`.
