@@ -1,7 +1,7 @@
 $(document).ready(function() {
     var socket = io();
-    var selectedModel = '';  // Default model
-    var selectedProvider = '';  // Default provider
+    var selectedModel = 'gpt-4o';  // Default model
+    var selectedProvider = 'openai';  // Default provider
 
     // Function to update model options based on provider
     function updateModelOptions(provider) {
@@ -52,15 +52,15 @@ $(document).ready(function() {
             const formData = new FormData();
             const customEngine = $('#custom-engine').val();
             const config = {
-            temperature: $('#temperature').val(),
-            maxTokens: $('#max-tokens').val(),
-            topP: $('#top-p').val()
-        };
+                temperature: $('#temperature').val(),
+                maxTokens: $('#max-tokens').val(),
+                topP: $('#top-p').val()
+            };
 
-        let modelToUse = selectedModel;
-        if (selectedModel === 'custom') {
-            modelToUse = customEngine;
-        }
+            let modelToUse = selectedModel;
+            if (selectedModel === 'custom') {
+                modelToUse = customEngine;
+            }
             formData.append('file', file);
             $.ajax({
                 url: '/upload',
@@ -72,14 +72,23 @@ $(document).ready(function() {
                     if (response.error) {
                         alert(response.error);
                     } else {
-                        socket.send(JSON.stringify({ message: message, model: selectedModel, provider: selectedProvider, filename: response.filename }));
+                        socket.send(JSON.stringify({ message: message, model: modelToUse, provider: selectedProvider, filename: response.filename, config: config }));
                         $('#user-input').val('');
                         $('#file-input').val('');
                     }
                 }
             });
         } else {
-            socket.send(JSON.stringify({ message: message, model: selectedModel, provider: selectedProvider }));
+            const config = {
+                temperature: $('#temperature').val(),
+                maxTokens: $('#max-tokens').val(),
+                topP: $('#top-p').val()
+            };
+            let modelToUse = selectedModel;
+            if (selectedModel === 'custom') {
+                modelToUse = $('#custom-engine').val();
+            }
+            socket.send(JSON.stringify({ message: message, model: modelToUse, provider: selectedProvider, config: config }));
             $('#user-input').val('');
         }
         return false;
@@ -98,3 +107,30 @@ $(document).ready(function() {
         }
     });
 });
+
+function readCode(filepath) {
+    $.post('/read_code', { filepath: filepath }, function(response) {
+        if (response.error) {
+            alert(response.error);
+        } else {
+            console.log('File content:', response.content);
+        }
+    });
+}
+
+function writeCode(filepath, content) {
+    $.post('/write_code', { filepath: filepath, content: content }, function(response) {
+        if (response.error) {
+            alert(response.error);
+        } else {
+            console.log(response.message);
+        }
+    });
+}
+
+function executeCode(filepath) {
+    $.post('/execute_code', { filepath: filepath }, function(response) {
+        console.log('Execution output:', response.stdout);
+        console.log('Execution errors:', response.stderr);
+    });
+}
