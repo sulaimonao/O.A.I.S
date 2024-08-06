@@ -27,7 +27,7 @@ O.A.I.S is a powerful and flexible system designed to integrate language models 
 1. **Clone the repository:**
 
     ```sh
-    git clone https://github.com/yourusername/O.A.I.S.git
+    git clone https://github.com/sulaimonao/O.A.I.S.git
     cd O.A.I.S
     ```
 
@@ -89,13 +89,6 @@ O.A.I.S is a powerful and flexible system designed to integrate language models 
 ## Contributing
 
 Contributions are welcome! Please follow these steps to contribute:
-
-1. Fork the repository.
-2. Create a new branch (`git checkout -b feature/your-feature-name`).
-3. Make your changes.
-4. Commit your changes (`git commit -m 'Add some feature'`).
-5. Push to the branch (`git push origin feature/your-feature-name`).
-6. Create a new Pull Request.
 
 ## License
 
