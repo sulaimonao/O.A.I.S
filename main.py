@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+import asyncio
 from flask import Flask, render_template, request, jsonify, session
 from flask_socketio import SocketIO, emit
 from openai import OpenAI
@@ -9,6 +10,7 @@ from config import Config
 from tools.intent_parser import parse_intent, handle_write_to_file, handle_execute_code
 from tools.code_execution import execute_code
 from tools.file_operations import read_file, write_file
+from tools.system_operations import list_usb_devices, list_bluetooth_devices, capture_image, record_audio, execute_command
 from tools.database import init_db, add_message, get_conversation_history, get_user_profile, set_user_profile
 
 app = Flask(__name__)
@@ -46,41 +48,36 @@ def upload():
         file.save(filepath)
         return jsonify({'filename': file.filename})
 
-def generate_code_via_llm(prompt, model, provider, config):
-    cache_key = f"{provider}:{model}:{prompt}"
-    if cache_key in resource_cache:
-        logging.debug(f"Cache hit for prompt: {prompt}")
-        return resource_cache[cache_key]
+@app.route('/list_usb_devices', methods=['GET'])
+def list_usb():
+    devices = list_usb_devices()
+    return jsonify(devices)
 
-    try:
-        if provider == 'openai':
-            response = openai_client.Completions.create(
-                prompt=prompt,
-                model=model,
-                temperature=config['temperature'],
-                max_tokens=config['maxTokens'],
-                top_p=config['topP']
-            )
-            code = response['choices'][0]['text']
-        elif provider == 'google':
-            if not model.startswith('models/') and not model.startswith('tunedModels/'):
-                model = 'models/' + model
-            genai_model = genai.GenerativeModel(model)
-            response = genai_model.generate_content(prompt)
-            code = response.text
-        else:
-            return {'error': 'Unsupported provider'}
-        
-        resource_cache[cache_key] = {'code': code}
-        return {'code': code}
-    except Exception as e:
-        logging.error(f'Error generating code: {str(e)}')
-        return {'error': str(e)}
+@app.route('/list_bluetooth_devices', methods=['GET'])
+def list_bluetooth():
+    devices = asyncio.run(list_bluetooth_devices())
+    return jsonify(devices)
+
+@app.route('/capture_image', methods=['GET'])
+def capture():
+    image_path = capture_image()
+    return jsonify({'image_path': image_path})
+
+@app.route('/record_audio', methods=['GET'])
+def record():
+    audio_path = record_audio()
+    return jsonify({'audio_path': audio_path})
+
+@app.route('/execute_command', methods=['POST'])
+def execute():
+    command = request.json.get('command')
+    output = execute_command(command)
+    return jsonify({'output': output})
 
 @socketio.on('message')
 def handle_message(data):
     session_id = session.get('id')
-    user_id = session_id  # This could be enhanced to use actual user IDs in a real system
+    user_id = session_id
 
     if 'user_profile' not in session:
         session['user_profile'] = {'name': None, 'awaiting_confirmation': False}
@@ -156,7 +153,7 @@ def handle_message(data):
         return
 
     intent = parse_intent(message)
-    
+
     if intent == "write_to_file":
         content_response = generate_code_via_llm(message, model, provider, config)
         if 'code' in content_response:
@@ -189,6 +186,28 @@ def handle_message(data):
         else:
             emit('message', {'user': message, 'error': code_response['error']})
             logging.error(f'Error emitting code response: {code_response["error"]}')
+    elif "read code" in message.lower():
+        filepath = message.split(' ', 2)[-1]  # Assuming the message is "read code <filepath>"
+        content = read_file(filepath)
+        if content is None:
+            emit('message', {'user': message, 'error': 'File not found'})
+        else:
+            emit('message', {'user': message, 'assistant': content})
+    elif "write code" in message.lower():
+        parts = message.split(' ', 3)
+        if len(parts) < 4:
+            emit('message', {'user': message, 'error': 'Invalid format. Use: write code <filepath> <content>'})
+        else:
+            filepath, content = parts[2], parts[3]
+            success = write_file(filepath, content)
+            if success:
+                emit('message', {'user': message, 'assistant': 'File updated successfully'})
+            else:
+                emit('message', {'user': message, 'error': 'Failed to update file'})
+    elif "execute code" in message.lower():
+        filepath = message.split(' ', 2)[-1]  # Assuming the message is "execute code <filepath>"
+        stdout, stderr = execute_code(filepath)
+        emit('message', {'user': message, 'assistant': f'Output: {stdout}\nErrors: {stderr}'})
     else:
         history = get_conversation_history(session_id)
         history.append({"role": "system", "content": Config.SYSTEM_PROMPT})
