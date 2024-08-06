@@ -52,3 +52,20 @@ def set_user_profile(session_id, name):
         'INSERT OR REPLACE INTO user_profiles (session_id, name) VALUES (?, ?)',
         [session_id, name]
     )
+
+def get_conversation_history_for_user(user_id):
+    return query_db(
+        'SELECT role, content FROM messages WHERE user_id = ? ORDER BY timestamp',
+        [user_id]
+    )
+
+def create_new_user(username):
+    query_db(
+        'INSERT INTO user_profiles (name) VALUES (?)',
+        [username]
+    )
+
+def get_all_user_profiles():
+    return query_db(
+        'SELECT name FROM user_profiles'
+    )

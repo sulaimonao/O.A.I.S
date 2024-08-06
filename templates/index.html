@@ -8,45 +8,56 @@
 </head>
 <body>
     <div id="container">
-        <div id="header">
-            <img src="/static/images/logo3.png" alt="O.A.I.S Logo" id="logo">
-            <h1>O.A.I.S</h1>
+        <div id="settings-sidebar">
+            <div id="logo-section">
+                <img src="/static/images/logo.png" alt="O.A.I.S Logo">
+                <h1>O.A.I.S</h1>
+            </div>
+            <h2>Profile</h2>
+            <select id="profile-select">
+                <!-- Profiles will be populated here -->
+            </select>
+            <button type="button" id="load-profile">Load Profile</button>
+            <h2>Settings</h2>
+            <form id="settings-form">
+                <label for="provider-select">Choose Provider:</label>
+                <select id="provider-select">
+                    <option value="openai">OpenAI</option>
+                    <option value="google">Google</option>
+                </select>
+                <label for="model-select">Choose Model:</label>
+                <select id="model-select">
+                    <option value="gpt-4o">GPT-4o</option>
+                    <option value="gpt-4o-mini">GPT-4o-mini</option>
+                    <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                    <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                </select>
+                <label for="custom-engine" style="display:none;">Custom Engine Name:</label>
+                <input type="text" id="custom-engine" placeholder="Enter custom engine name" style="display:none;">
+                <label for="temperature">Temperature:</label>
+                <input type="number" id="temperature" value="0.9" step="0.1" min="0" max="1">
+                <label for="max-tokens">Max Tokens:</label>
+                <input type="number" id="max-tokens" value="4000" step="100" min="1">
+                <label for="top-p">Top P:</label>
+                <input type="number" id="top-p" value="1.0" step="0.1" min="0" max="1">
+            </form>
         </div>
-        <div id="main-content">
-            <div id="settings-sidebar">
-                <h2>Settings</h2>
-                <form id="settings-form">
-                    <label for="provider-select">Choose Provider:</label>
-                    <select id="provider-select">
-                        <option value="openai">OpenAI</option>
-                        <option value="google">Google</option>
-                    </select>
-                    <label for="model-select">Choose Model:</label>
-                    <select id="model-select">
-                        <option value="gpt-4o">GPT-4o</option>
-                        <option value="gpt-4o-mini">GPT-4o-mini</option>
-                        <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
-                        <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
-                    </select>
-                    <label for="custom-engine" style="display:none;">Custom Engine Name:</label>
-                    <input type="text" id="custom-engine" placeholder="Enter custom engine name" style="display:none;">
-                    <label for="temperature">Temperature:</label>
-                    <input type="number" id="temperature" value="0.9" step="0.1" min="0" max="1">
-                    <label for="max-tokens">Max Tokens:</label>
-                    <input type="number" id="max-tokens" value="4000" step="100" min="1">
-                    <label for="top-p">Top P:</label>
-                    <input type="number" id="top-p" value="1.0" step="0.1" min="0" max="1">
-                    <button type="button" id="save-settings">Save</button>
-                </form>
-            </div>
-            <div id="chat-container">
-                <div id="chat-history"></div>
-                <form id="chat-form">
-                    <input type="text" id="user-input" placeholder="Type your message here..." autocomplete="off" required>
-                    <input type="file" id="file-input">
-                    <button type="submit">Send</button>
-                </form>
-            </div>
+        <div id="chat-container">
+            <div id="chat-history"></div>
+            <form id="chat-form">
+                <input type="text" id="user-input" placeholder="Type your message here..." autocomplete="off" required>
+                <input type="file" id="file-input">
+                <button type="submit">Send</button>
+            </form>
+        </div>
+        <div id="memory-sidebar">
+            <h2>Memory Settings</h2>
+            <label for="profile-memory">Profile Memory:</label>
+            <input type="checkbox" id="profile-memory" checked>
+            <label for="long-term-memory">Long-Term Memory:</label>
+            <input type="checkbox" id="long-term-memory" checked>
+            <label for="chatroom-memory">Chatroom Memory:</label>
+            <input type="checkbox" id="chatroom-memory" checked>
         </div>
     </div>
     

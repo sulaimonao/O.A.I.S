@@ -2,7 +2,7 @@ import os
 import json
 import logging
 import asyncio
-from flask import Flask, render_template, request, jsonify, session
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from flask_socketio import SocketIO, emit
 import openai
 import google.generativeai as genai
@@ -11,7 +11,7 @@ from tools.intent_parser import parse_intent, handle_write_to_file, handle_execu
 from tools.code_execution import execute_code
 from tools.file_operations import read_file, write_file
 from tools.system_operations import list_usb_devices, list_bluetooth_devices, capture_image, record_audio, execute_command
-from tools.database import init_db, add_message, get_conversation_history, get_user_profile, set_user_profile
+from tools.database import init_db, add_message, get_conversation_history_for_user, create_new_user, get_all_user_profiles, set_user_profile
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
@@ -28,10 +28,23 @@ genai.configure(api_key=Config.GOOGLE_API_KEY)
 # Initialize the database
 init_db()
 
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
 def index():
-    session['id'] = os.urandom(24).hex()
-    return render_template('index.html')
+    if request.method == 'POST':
+        username = request.form['username']
+        if 'new_profile' in request.form:
+            create_new_user(username)
+        session['username'] = username
+        return redirect(url_for('chat'))
+    else:
+        profiles = get_all_user_profiles()
+        return render_template('index.html', profiles=profiles)
+
+@app.route('/chat')
+def chat():
+    if 'username' not in session:
+        return redirect(url_for('index'))
+    return render_template('index.html', username=session['username'])  # Render index.html
 
 @app.route('/upload', methods=['POST'])
 def upload():
@@ -73,11 +86,11 @@ def execute():
 
 @socketio.on('message')
 def handle_message(data):
-    session_id = session.get('id')
-    user_id = session_id
+    if 'username' not in session:
+        emit('message', {'error': 'User not authenticated. Please log in or create a new profile.'})
+        return
 
-    if 'user_profile' not in session:
-        session['user_profile'] = {'name': None, 'awaiting_confirmation': False}
+    user_id = session['username'] 
 
     data = json.loads(data)
     message = data['message']
@@ -86,6 +99,7 @@ def handle_message(data):
     filename = data.get('filename')
     custom_engine = data.get('customEngine')
     config = data.get('config', {})
+
     if custom_engine:
         model = custom_engine
 
@@ -100,24 +114,21 @@ def handle_message(data):
     logging.debug(f"Message: {message}, Model: {model}, Provider: {provider}, Filename: {filename}, Config: {config}")
 
     # Store the user's message
-    add_message(session_id, user_id, 'user', message, provider) 
+    add_message(session_id, user_id, 'user', message, provider)
 
-    # Retrieve conversation history
-    history = get_conversation_history(session_id)
+    # Retrieve conversation history for the user
+    history = get_conversation_history_for_user(user_id)
 
     try:
         # Format history for the selected LLM provider
         formatted_history = []
         if provider == 'openai':
-            # Example formatting for OpenAI (Assuming history is a list of tuples)
             formatted_history = [{"role": item[0], "content": item[1]} for item in history] 
-            # Add the system prompt and the current user message
             formatted_history.append({"role": "system", "content": Config.SYSTEM_PROMPT})
             formatted_history.append({"role": "user", "content": message})
         elif provider == 'google':
-            # TODO: Format history for Google Gemini (You'll need to adjust this based on Gemini's API)
-            # Example (replace with actual Gemini formatting):
-            # formatted_history = "\n".join([f"{item[0]}: {item[1]}" for item in history]) + f"\nUser: {message}"
+            formatted_history = [{"role": item[0], "content": item[1]} for item in history]
+            formatted_history = "\n".join([f"{item[0]}: {item[1]}" for item in history]) + f"\nUser: {message}"
             pass
 
         # Handle user introduction and confirmation
