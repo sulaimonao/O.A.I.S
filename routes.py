@@ -1,6 +1,6 @@
 import json
 import logging
-from flask import Blueprint, session, render_template
+from flask import Blueprint, session, render_template, request, jsonify
 from flask_socketio import emit
 from app_extensions import socketio
 from utils.database import add_message, add_long_term_memory, add_chatroom_memory, get_conversation_history, get_user_profile, set_user_profile
@@ -25,11 +25,53 @@ main = Blueprint('main', __name__)
 def index():
     return render_template('index.html')
 
+# Sample in-memory storage for demonstration
+profiles = []
+memory_setting = {'enabled': False}
+
+@main.route('/api/profiles', methods=['GET', 'POST'])
+def manage_profiles():
+    if request.method == 'GET':
+        return jsonify(profiles)
+    elif request.method == 'POST':
+        data = request.get_json()
+        profile_name = data.get('name')
+        if profile_name and profile_name not in profiles:
+            profiles.append(profile_name)
+            return jsonify({'name': profile_name}), 201
+        else:
+            return jsonify({'error': 'Profile already exists or invalid name'}), 400
+
+@main.route('/api/profiles/select', methods=['POST'])
+def select_profile():
+    data = request.get_json()
+    profile_name = data.get('name')
+    if profile_name in profiles:
+        # Here you can handle profile-specific logic
+        session['user_profile']['name'] = profile_name
+        return jsonify({'selected': profile_name}), 200
+    else:
+        return jsonify({'error': 'Profile not found'}), 404
+
+@main.route('/api/memory', methods=['GET', 'POST'])
+def manage_memory():
+    if request.method == 'GET':
+        return jsonify(memory_setting)
+    elif request.method == 'POST':
+        data = request.get_json()
+        enabled = data.get('enabled')
+        memory_setting['enabled'] = enabled
+        return jsonify(memory_setting), 200
+
 @socketio.on('message')
 def handle_message(data):
     logging.debug(f"Received message: {data}")
     
     session_id = session.get('id')
+    if not session_id:
+        emit('message', {'error': 'Session ID is missing.'})
+        return
+
     user_id = session_id  # This could be enhanced to use actual user IDs in a real system
 
     if 'user_profile' not in session:
@@ -60,7 +102,7 @@ def handle_message(data):
 
     logging.debug(f"Message: {message}, Model: {model}, Provider: {provider}, Filename: {filename}, Config: {config}")
 
-    add_message(session_id, user_id, 'user', message, provider)
+    add_message(session_id, user_id, 'user', message, model)
 
     # Handle user introduction and confirmation
     if session['user_profile']['awaiting_confirmation']:
@@ -68,13 +110,13 @@ def handle_message(data):
             session['user_profile']['awaiting_confirmation'] = False
             set_user_profile(session_id, session['user_profile']['name'])
             response_message = f"Great! I will remember your name, {session['user_profile']['name']}."
-            add_message(session_id, user_id, 'assistant', response_message, provider)
+            add_message(session_id, user_id, 'assistant', response_message, model)
             emit('message', {'user': message, 'assistant': response_message})
         else:
             session['user_profile']['name'] = None
             session['user_profile']['awaiting_confirmation'] = False
             response_message = "Okay, I won't remember your name."
-            add_message(session_id, user_id, 'assistant', response_message, provider)
+            add_message(session_id, user_id, 'assistant', response_message, model)
             emit('message', {'user': message, 'assistant': response_message})
         return
 
@@ -85,11 +127,11 @@ def handle_message(data):
             session['user_profile']['name'] = name
             session['user_profile']['awaiting_confirmation'] = True
             response_message = f"Did I get that right? Is your name {name}? Please reply with 'yes' or 'no'."
-            add_message(session_id, user_id, 'assistant', response_message, provider)
+            add_message(session_id, user_id, 'assistant', response_message, model)
             emit('message', {'user': message, 'assistant': response_message})
         else:
             response_message = "I didn't catch your name. Please tell me again by saying 'My name is [Your Name]'."
-            add_message(session_id, user_id, 'assistant', response_message, provider)
+            add_message(session_id, user_id, 'assistant', response_message, model)
             emit('message', {'user': message, 'assistant': response_message})
         return
 
@@ -105,7 +147,7 @@ def handle_message(data):
             response_message = f"Your name is {name}."
         else:
             response_message = "I don't know your name. Please tell me your name by saying 'My name is [Your Name]'."
-        add_message(session_id, user_id, 'assistant', response_message, provider)
+        add_message(session_id, user_id, 'assistant', response_message, model)
         emit('message', {'user': message, 'assistant': response_message})
         return
 
@@ -116,7 +158,7 @@ def handle_message(data):
         if 'code' in content_response:
             content = content_response['code']
             result = handle_write_to_file(message, content)
-            add_message(session_id, user_id, 'assistant', result, provider)
+            add_message(session_id, user_id, 'assistant', result, model)
             emit('message', {'user': message, 'result': result})
             logging.debug(f"Emitting write_to_file result: {result}")
         else:
@@ -126,7 +168,7 @@ def handle_message(data):
         code_response = generate_code_via_llm(message, model, provider, config)
         if 'code' in code_response:
             result = handle_execute_code(message, code_response['code'], session_id)
-            add_message(session_id, user_id, 'assistant', result, provider)
+            add_message(session_id, user_id, 'assistant', result, model)
             emit('message', {'user': message, 'result': result})
             logging.debug(f"Emitting execute_code result: {result}")
         else:
@@ -137,7 +179,7 @@ def handle_message(data):
         if 'code' in code_response:
             result = execute_code(code_response['code'])
             write_file('output.txt', result)
-            add_message(session_id, user_id, 'assistant', result, provider)
+            add_message(session_id, user_id, 'assistant', result, model)
             emit('message', {'user': message, 'code': code_response['code'], 'result': result})
             logging.debug(f'Emitting code response: {code_response["code"]}')
         else:
@@ -167,7 +209,7 @@ def handle_message(data):
                     response = genai_model.generate_content(message)
                 content = response.text
 
-            add_message(session_id, user_id, 'assistant', content, provider)
+            add_message(session_id, user_id, 'assistant', content, model)
             logging.debug(f'{provider.capitalize()} Response: {content}')
             emit('message', {'user': message, 'assistant': content})
         except Exception as e:

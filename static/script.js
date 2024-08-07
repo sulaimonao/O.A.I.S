@@ -113,4 +113,96 @@ $(document).ready(function() {
             $('#chat-history').scrollTop($('#chat-history')[0].scrollHeight);
         }
     });
+
+    // Memory and profile settings initialization
+    const memoryToggle = document.getElementById('memory-toggle');
+    const profileSelect = document.getElementById('profile-select');
+    const createProfileButton = document.getElementById('create-profile');
+
+    // Load existing profiles and memory setting
+    loadProfiles();
+    loadMemorySetting();
+
+    memoryToggle.addEventListener('change', function() {
+        const isEnabled = memoryToggle.checked;
+        updateMemorySetting(isEnabled);
+    });
+
+    createProfileButton.addEventListener('click', function() {
+        const profileName = prompt('Enter new profile name:');
+        if (profileName) {
+            createProfile(profileName);
+        }
+    });
+
+    profileSelect.addEventListener('change', function() {
+        const selectedProfile = profileSelect.value;
+        if (selectedProfile) {
+            selectProfile(selectedProfile);
+        }
+    });
+
+    function loadProfiles() {
+        // Fetch profiles from backend and populate the select element
+        fetch('/api/profiles')
+            .then(response => response.json())
+            .then(profiles => {
+                profiles.forEach(profile => {
+                    const option = document.createElement('option');
+                    option.value = profile;
+                    option.textContent = profile;
+                    profileSelect.appendChild(option);
+                });
+            });
+    }
+
+    function loadMemorySetting() {
+        // Fetch current memory setting from backend
+        fetch('/api/memory')
+            .then(response => response.json())
+            .then(data => {
+                memoryToggle.checked = data.enabled;
+            });
+    }
+
+    function updateMemorySetting(isEnabled) {
+        // Update memory setting on backend
+        fetch('/api/memory', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ enabled: isEnabled })
+        });
+    }
+
+    function createProfile(profileName) {
+        // Create new profile on backend
+        fetch('/api/profiles', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ name: profileName })
+        })
+        .then(response => response.json())
+        .then(profile => {
+            const option = document.createElement('option');
+            option.value = profile.name;
+            option.textContent = profile.name;
+            profileSelect.appendChild(option);
+            profileSelect.value = profile.name;
+        });
+    }
+
+    function selectProfile(profileName) {
+        // Select profile on backend
+        fetch('/api/profiles/select', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ name: profileName })
+        });
+    }
 });

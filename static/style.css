@@ -41,41 +41,42 @@ body {
     font-size: 1.5em;
 }
 
-#main-content {
+#content {
     display: flex;
     flex: 1;
+    height: calc(100vh - 100px); /* Adjust based on header height */
 }
 
-#settings-sidebar {
+#sidebar {
     width: 25%;
     padding: 20px;
     border-right: 1px solid #ccc;
     background-color: #f9f9f9;
-    position: sticky;
-    top: 0;
-    height: 100vh;
     overflow-y: auto;
 }
 
-#settings-sidebar h2 {
+#sidebar h2 {
     margin-top: 0;
     font-size: 1.2em;
     color: #333;
+    border-bottom: 1px solid #ccc; /* Add border bottom to headings */
+    padding-bottom: 5px; /* Add padding bottom for spacing */
+    margin-bottom: 15px; /* Add margin bottom for spacing */
 }
 
-#settings-sidebar form {
+#sidebar form {
     display: flex;
     flex-direction: column;
 }
 
-#settings-sidebar label {
+#sidebar label {
     margin-bottom: 5px;
     color: #555;
 }
 
-#settings-sidebar select,
-#settings-sidebar input,
-#settings-sidebar button {
+#sidebar select,
+#sidebar input,
+#sidebar button {
     margin-bottom: 15px;
     padding: 10px;
     border-radius: 5px;
@@ -83,23 +84,24 @@ body {
     box-sizing: border-box;
 }
 
-#settings-sidebar button {
+#sidebar button {
     background-color: #007bff;
     color: #fff;
     cursor: pointer;
     transition: background-color 0.3s;
 }
 
-#settings-sidebar button:hover {
+#sidebar button:hover {
     background-color: #0056b3;
 }
 
 #chat-container {
+    flex: 1;
     display: flex;
     flex-direction: column;
-    flex: 1;
     padding: 20px;
-    height: calc(100vh - 60px); /* Adjust based on header height */
+    height: 100%;
+    box-sizing: border-box;
 }
 
 #chat-history {
@@ -149,4 +151,22 @@ body {
     margin: 10px 0;
     max-width: 100%;
     border-radius: 10px;
+}
+
+#memory-settings, #profile-management {
+    margin-bottom: 20px; /* Add margin bottom for spacing */
+}
+
+#memory-settings h2, #profile-management h2 {
+    margin-top: 0;
+}
+
+#memory-settings label, #profile-management label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+#memory-settings input, #profile-management select, #profile-management button {
+    display: block;
+    margin-bottom: 10px;
 }
