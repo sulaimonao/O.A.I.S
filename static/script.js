@@ -1,5 +1,5 @@
 $(document).ready(function() {
-    var socket = io();
+    var socket = io.connect('http://' + document.domain + ':' + location.port);
     var selectedModel = 'gpt-4o';  // Default model
     var selectedProvider = 'openai';  // Default provider
 
@@ -45,7 +45,11 @@ $(document).ready(function() {
 
     $('form').submit(function(event) {
         event.preventDefault();
+        console.log('Form submitted'); // Debug statement
+
         const message = $('#user-input').val();
+        console.log('User input:', message); // Debug statement
+
         const fileInput = $('#file-input')[0];
         if (fileInput.files.length > 0) {
             const file = fileInput.files[0];
@@ -69,10 +73,11 @@ $(document).ready(function() {
                 processData: false,
                 contentType: false,
                 success: function(response) {
+                    console.log('File upload response:', response); // Debug statement
                     if (response.error) {
                         alert(response.error);
                     } else {
-                        socket.send(JSON.stringify({ message: message, model: modelToUse, provider: selectedProvider, filename: response.filename, config: config }));
+                        socket.emit('message', JSON.stringify({ message: message, model: modelToUse, provider: selectedProvider, filename: response.filename, config: config }));
                         $('#user-input').val('');
                         $('#file-input').val('');
                     }
@@ -88,13 +93,15 @@ $(document).ready(function() {
             if (selectedModel === 'custom') {
                 modelToUse = $('#custom-engine').val();
             }
-            socket.send(JSON.stringify({ message: message, model: modelToUse, provider: selectedProvider, config: config }));
+            console.log('Sending message to server:', { message: message, model: modelToUse, provider: selectedProvider, config: config }); // Debug statement
+            socket.emit('message', JSON.stringify({ message: message, model: modelToUse, provider: selectedProvider, config: config }));
             $('#user-input').val('');
         }
         return false;
     });
 
     socket.on('message', function(data) {
+        console.log('Received message:', data);  // Debug statement
         if (data.error) {
             alert(data.error);
         } else {

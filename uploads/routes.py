@@ -1,21 +1,18 @@
+from flask import Blueprint, render_template, request, jsonify, session
 import os
 import json
 import logging
-from flask import Flask, render_template, request, jsonify, session
 from flask_socketio import SocketIO, emit
 from openai import OpenAI
 import google.generativeai as genai
 from config import Config
-from tools.intent_parser import parse_intent, handle_write_to_file, handle_execute_code
-from tools.code_execution import execute_code
-from tools.file_operations import read_file, write_file
-from tools.database import init_db, add_message, get_conversation_history, get_user_profile, set_user_profile
+from utils.intent_parser import parse_intent, handle_write_to_file, handle_execute_code
+from utils.code_execution import execute_code
+from utils.file_operations import read_file, write_file
+from utils.database import init_db, add_message, get_conversation_history, get_user_profile, set_user_profile
 
-app = Flask(__name__)
-app.config['SECRET_KEY'] = 'secret!'
-socketio = SocketIO(app)
-
-logging.basicConfig(level=logging.DEBUG)
+main = Blueprint('main', __name__)
+socketio = SocketIO()
 
 # Initialize OpenAI client
 openai_client = OpenAI(api_key=Config.OPENAI_API_KEY)
@@ -29,12 +26,12 @@ init_db()
 # Cache for storing previously generated code and results
 resource_cache = {}
 
-@app.route('/')
+@main.route('/')
 def index():
     session['id'] = os.urandom(24).hex()
     return render_template('index.html')
 
-@app.route('/upload', methods=['POST'])
+@main.route('/upload', methods=['POST'])
 def upload():
     if 'file' not in request.files:
         return jsonify({'error': 'No file part'})
@@ -48,6 +45,7 @@ def upload():
 
 @socketio.on('message')
 def handle_message(data):
+    logging.debug(f"Received message: {data}")
     session_id = session.get('id')
     user_id = session_id  # This could be enhanced to use actual user IDs in a real system
 
@@ -188,10 +186,3 @@ def handle_message(data):
         except Exception as e:
             logging.error(f'Error with {provider.capitalize()}: {str(e)}')
             emit('message', {'error': str(e)})
-
-if __name__ == '__main__':
-    if not os.path.exists('uploads'):
-        os.makedirs('uploads')
-    if not os.path.exists('virtual_workspace'):
-        os.makedirs('virtual_workspace')
-    socketio.run(app, debug=True)

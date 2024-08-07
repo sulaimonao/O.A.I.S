@@ -69,3 +69,29 @@ def get_all_user_profiles():
     return query_db(
         'SELECT name FROM user_profiles'
     )
+
+# Implement the missing functions
+
+def add_long_term_memory(session_id, content):
+    query_db(
+        'INSERT INTO long_term_memory (session_id, content) VALUES (?, ?)',
+        [session_id, content]
+    )
+
+def add_chatroom_memory(session_id, content):
+    query_db(
+        'INSERT INTO chatroom_memory (session_id, content) VALUES (?, ?)',
+        [session_id, content]
+    )
+
+def get_long_term_memory(session_id):
+    return query_db(
+        'SELECT content FROM long_term_memory WHERE session_id = ?',
+        [session_id]
+    )
+
+def get_chatroom_memory(session_id):
+    return query_db(
+        'SELECT content FROM chatroom_memory WHERE session_id = ?',
+        [session_id]
+    )
