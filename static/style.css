@@ -41,6 +41,7 @@ body {
     font-size: 1.5em;
 }
 
+/* Other existing styles... */
 #main-content {
     display: flex;
     flex: 1;

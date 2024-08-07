@@ -1,4 +1,5 @@
--- Schema for the conversation history
+DROP TABLE IF EXISTS messages;
+
 CREATE TABLE messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     session_id TEXT NOT NULL,
@@ -9,7 +10,8 @@ CREATE TABLE messages (
     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Schema for the user profiles
+DROP TABLE IF EXISTS user_profiles;
+
 CREATE TABLE user_profiles (
     session_id TEXT PRIMARY KEY,
     name TEXT

@@ -107,30 +107,3 @@ $(document).ready(function() {
         }
     });
 });
-
-function readCode(filepath) {
-    $.post('/read_code', { filepath: filepath }, function(response) {
-        if (response.error) {
-            alert(response.error);
-        } else {
-            console.log('File content:', response.content);
-        }
-    });
-}
-
-function writeCode(filepath, content) {
-    $.post('/write_code', { filepath: filepath, content: content }, function(response) {
-        if (response.error) {
-            alert(response.error);
-        } else {
-            console.log(response.message);
-        }
-    });
-}
-
-function executeCode(filepath) {
-    $.post('/execute_code', { filepath: filepath }, function(response) {
-        console.log('Execution output:', response.stdout);
-        console.log('Execution errors:', response.stderr);
-    });
-}
