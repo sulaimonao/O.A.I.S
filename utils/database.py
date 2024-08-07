@@ -29,10 +29,10 @@ def create_db(database_path):
     except Exception as e:
         logging.error(f"Failed to create database: {e}")
 
-def check_and_create_tables():
+def check_and_create_tables(database_path=DATABASE):
     try:
-        logging.info("Checking and creating tables if they do not exist...")
-        with closing(sqlite3.connect(DATABASE)) as db:
+        logging.info(f"Checking and creating tables in {database_path} if they do not exist...")
+        with closing(sqlite3.connect(database_path)) as db:
             schema = """
             CREATE TABLE IF NOT EXISTS messages (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -48,80 +48,98 @@ def check_and_create_tables():
                 name TEXT,
                 database_name TEXT UNIQUE NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS long_term_memory (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,
+                content TEXT NOT NULL,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS chatroom_memory (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,
+                content TEXT NOT NULL,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
             """
             db.cursor().executescript(schema)
             db.commit()
-            logging.info("Tables checked and created if necessary.")
+            logging.info(f"Tables checked and created in {database_path} if necessary.")
     except Exception as e:
-        logging.error(f"Failed to check and create tables: {e}")
+        logging.error(f"Failed to check and create tables in {database_path}: {e}")
 
-def query_db(query, args=(), one=False):
+def query_db(query, args=(), one=False, database_path=DATABASE):
     try:
-        with closing(sqlite3.connect(DATABASE)) as db:
+        with closing(sqlite3.connect(database_path)) as db:
             cur = db.execute(query, args)
             rv = cur.fetchall()
             db.commit()
             return (rv[0] if rv else None) if one else rv
     except Exception as e:
-        logging.error(f"Database query failed: {e}")
+        logging.error(f"Database query failed in {database_path}: {e}")
         return None
 
-def add_message(session_id, user_id, role, content, model):
+def add_message(session_id, user_id, role, content, model, database_path=DATABASE):
     try:
         query_db(
             'INSERT INTO messages (session_id, user_id, role, content, model) VALUES (?, ?, ?, ?, ?)',
-            [session_id, user_id, role, content, model]
+            [session_id, user_id, role, content, model],
+            database_path=database_path
         )
     except Exception as e:
-        logging.error(f"Failed to add message: {e}")
+        logging.error(f"Failed to add message in {database_path}: {e}")
 
-def add_long_term_memory(session_id, content):
+def add_long_term_memory(session_id, content, database_path=DATABASE):
     try:
         query_db(
             'INSERT INTO long_term_memory (session_id, content) VALUES (?, ?)',
-            [session_id, content]
+            [session_id, content],
+            database_path=database_path
         )
     except Exception as e:
-        logging.error(f"Failed to add long-term memory: {e}")
+        logging.error(f"Failed to add long-term memory in {database_path}: {e}")
 
-def add_chatroom_memory(session_id, content):
+def add_chatroom_memory(session_id, content, database_path=DATABASE):
     try:
         query_db(
             'INSERT INTO chatroom_memory (session_id, content) VALUES (?, ?)',
-            [session_id, content]
+            [session_id, content],
+            database_path=database_path
         )
     except Exception as e:
-        logging.error(f"Failed to add chatroom memory: {e}")
+        logging.error(f"Failed to add chatroom memory in {database_path}: {e}")
 
-def get_conversation_history(session_id):
+def get_conversation_history(session_id, database_path=DATABASE):
     try:
         return query_db(
             'SELECT role, content FROM messages WHERE session_id = ? ORDER BY timestamp',
-            [session_id]
+            [session_id],
+            database_path=database_path
         )
     except Exception as e:
-        logging.error(f"Failed to get conversation history: {e}")
+        logging.error(f"Failed to get conversation history in {database_path}: {e}")
         return []
 
-def get_user_profile(session_id):
+def get_user_profile(session_id, database_path=DATABASE):
     try:
         return query_db(
             'SELECT name FROM user_profiles WHERE session_id = ?',
             [session_id],
-            one=True
+            one=True,
+            database_path=database_path
         )
     except Exception as e:
-        logging.error(f"Failed to get user profile: {e}")
+        logging.error(f"Failed to get user profile in {database_path}: {e}")
         return None
 
-def set_user_profile(session_id, name):
+def set_user_profile(session_id, name, database_path=DATABASE):
     try:
         query_db(
             'INSERT OR REPLACE INTO user_profiles (session_id, name) VALUES (?, ?)',
-            [session_id, name]
+            [session_id, name],
+            database_path=database_path
         )
     except Exception as e:
-        logging.error(f"Failed to set user profile: {e}")
+        logging.error(f"Failed to set user profile in {database_path}: {e}")
 
 def get_existing_profiles():
     profiles = []
