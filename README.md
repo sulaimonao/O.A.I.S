@@ -27,11 +27,7 @@ O.A.I.S is a powerful and flexible system designed to integrate language models 
 1. **Clone the repository:**
 
     ```sh
-<<<<<<< Updated upstream
     git clone https://github.com/sulaimonao/O.A.I.S.git
-=======
-    git clone https://github.com/yourusername/O.A.I.S.git
->>>>>>> Stashed changes
     cd O.A.I.S
     ```
 
