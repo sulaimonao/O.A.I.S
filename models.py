@@ -1,49 +1,16 @@
-import sqlite3
-from contextlib import closing
-import os
-import logging
-from config import Config
+from app_extensions import db
 
-logging.basicConfig(level=logging.INFO)
-DATABASE = Config.DATABASE
+class Message(db.Model):
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    session_id = db.Column(db.String, nullable=False)
+    user_id = db.Column(db.String, nullable=False)
+    role = db.Column(db.String, nullable=False)
+    content = db.Column(db.String, nullable=False)
+    model = db.Column(db.String, nullable=False)
+    timestamp = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
 
-def init_db():
-    try:
-        if os.path.exists(DATABASE):
-            logging.info("Using existing database.")
-        else:
-            create_db()
-            logging.info("Database created successfully.")
-    except Exception as e:
-        logging.error(f"Failed to initialize database: {e}")
-
-def create_db():
-    try:
-        with closing(sqlite3.connect(DATABASE)) as db:
-            with open('schema.sql', mode='r') as f:
-                db.cursor().executescript(f.read())
-            db.commit()
-    except Exception as e:
-        logging.error(f"Failed to create database: {e}")
-
-def query_db(query, args=(), one=False):
-    try:
-        with closing(sqlite3.connect(DATABASE)) as db:
-            cur = db.execute(query, args)
-            rv = cur.fetchall()
-            db.commit()
-            return (rv[0] if rv else None) if one else rv
-    except Exception as e:
-        logging.error(f"Database query failed: {e}")
-        return None
-
-def add_message(session_id, user_id, role, content, model):
-    try:
-        query_db(
-            'INSERT INTO messages (session_id, user_id, role, content, model) VALUES (?, ?, ?, ?, ?)',
-            [session_id, user_id, role, content, model]
-        )
-    except Exception as e:
-        logging.error(f"Failed to add message: {e}")
-
-# Other functions remain the same with added error handling and logging.
+class UserProfile(db.Model):
+    __tablename__ = 'user_profiles'  # Ensure this matches the table name in the schema
+    session_id = db.Column(db.String, primary_key=True)
+    name = db.Column(db.String, unique=True, nullable=False)
+    database_name = db.Column(db.String, unique=True, nullable=False)

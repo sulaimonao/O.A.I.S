@@ -13,6 +13,8 @@ class Config:
     MAX_TOKENS = 4000
     TOP_P = 1.0
     SYSTEM_PROMPT = "You are a helpful assistant."
+    BASEDIR = os.path.abspath(os.path.dirname(__file__))
+    DATABASE = os.path.join(BASEDIR, 'main_database.db')
     SQLALCHEMY_DATABASE_URI = os.getenv("SQLALCHEMY_DATABASE_URI")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SECRET_KEY = os.getenv("SECRET_KEY")  # Add the secret key

@@ -3,7 +3,6 @@ $(document).ready(function() {
     var selectedModel = 'gpt-4o';  // Default model
     var selectedProvider = 'openai';  // Default provider
 
-    // Function to update model options based on provider
     function updateModelOptions(provider) {
         var modelOptions = '';
         if (provider === 'openai') {
@@ -18,16 +17,13 @@ $(document).ready(function() {
         $('#model-select').change();
     }
 
-    // Initialize model options
     updateModelOptions($('#provider-select').val());
 
-    // Update model options when provider changes
     $('#provider-select').change(function() {
         selectedProvider = $(this).val();
         updateModelOptions(selectedProvider);
     });
 
-    // Show or hide custom engine text box based on model selection
     $('#model-select').change(function() {
         if ($(this).val() === 'custom') {
             $('#custom-engine').show();
@@ -36,7 +32,6 @@ $(document).ready(function() {
         }
     });
 
-    // Save settings
     $('#save-settings').click(function() {
         selectedModel = $('#model-select').val();
         selectedProvider = $('#provider-select').val();
@@ -45,11 +40,7 @@ $(document).ready(function() {
 
     $('form').submit(function(event) {
         event.preventDefault();
-        console.log('Form submitted'); // Debug statement
-
         const message = $('#user-input').val();
-        console.log('User input:', message); // Debug statement
-
         const fileInput = $('#file-input')[0];
         if (fileInput.files.length > 0) {
             const file = fileInput.files[0];
@@ -73,7 +64,6 @@ $(document).ready(function() {
                 processData: false,
                 contentType: false,
                 success: function(response) {
-                    console.log('File upload response:', response); // Debug statement
                     if (response.error) {
                         alert(response.error);
                     } else {
@@ -93,7 +83,6 @@ $(document).ready(function() {
             if (selectedModel === 'custom') {
                 modelToUse = $('#custom-engine').val();
             }
-            console.log('Sending message to server:', { message: message, model: modelToUse, provider: selectedProvider, config: config }); // Debug statement
             socket.emit('message', JSON.stringify({ message: message, model: modelToUse, provider: selectedProvider, config: config }));
             $('#user-input').val('');
         }
@@ -101,7 +90,6 @@ $(document).ready(function() {
     });
 
     socket.on('message', function(data) {
-        console.log('Received message:', data);  // Debug statement
         if (data.error) {
             alert(data.error);
         } else {
@@ -129,6 +117,12 @@ $(document).ready(function() {
     });
 
     createProfileButton.addEventListener('click', function() {
+        const isMemoryEnabled = memoryToggle.checked;
+        if (!isMemoryEnabled) {
+            alert("Please enable memory before creating a profile.");
+            return;
+        }
+
         const profileName = prompt('Enter new profile name:');
         if (profileName) {
             createProfile(profileName);
@@ -143,10 +137,10 @@ $(document).ready(function() {
     });
 
     function loadProfiles() {
-        // Fetch profiles from backend and populate the select element
         fetch('/api/profiles')
             .then(response => response.json())
             .then(profiles => {
+                profileSelect.innerHTML = ''; // Clear existing options
                 profiles.forEach(profile => {
                     const option = document.createElement('option');
                     option.value = profile;
@@ -157,7 +151,6 @@ $(document).ready(function() {
     }
 
     function loadMemorySetting() {
-        // Fetch current memory setting from backend
         fetch('/api/memory')
             .then(response => response.json())
             .then(data => {
@@ -166,7 +159,6 @@ $(document).ready(function() {
     }
 
     function updateMemorySetting(isEnabled) {
-        // Update memory setting on backend
         fetch('/api/memory', {
             method: 'POST',
             headers: {
@@ -177,7 +169,6 @@ $(document).ready(function() {
     }
 
     function createProfile(profileName) {
-        // Create new profile on backend
         fetch('/api/profiles', {
             method: 'POST',
             headers: {
@@ -187,22 +178,31 @@ $(document).ready(function() {
         })
         .then(response => response.json())
         .then(profile => {
-            const option = document.createElement('option');
-            option.value = profile.name;
-            option.textContent = profile.name;
-            profileSelect.appendChild(option);
-            profileSelect.value = profile.name;
+            if (!profile.error) {
+                const option = document.createElement('option');
+                option.value = profile.name;
+                option.textContent = profile.name;
+                profileSelect.appendChild(option);
+                profileSelect.value = profile.name;
+            } else {
+                alert(profile.error);
+            }
         });
     }
 
     function selectProfile(profileName) {
-        // Select profile on backend
         fetch('/api/profiles/select', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({ name: profileName })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert(data.error);
+            }
         });
     }
 });

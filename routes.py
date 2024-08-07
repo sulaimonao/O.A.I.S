@@ -2,13 +2,16 @@ import json
 import logging
 from flask import Blueprint, session, render_template, request, jsonify
 from flask_socketio import emit
-from app_extensions import socketio
-from utils.database import add_message, add_long_term_memory, add_chatroom_memory, get_conversation_history, get_user_profile, set_user_profile
+from app_extensions import socketio, db
+from models import UserProfile
+from utils.database import add_message, add_long_term_memory, add_chatroom_memory, get_conversation_history, get_user_profile, set_user_profile, create_db, get_existing_profiles
 from utils.intent_parser import parse_intent, handle_write_to_file, handle_execute_code
 from utils.code_execution import execute_code
 from config import Config
 from openai import OpenAI
 import google.generativeai as genai
+import uuid
+import os
 
 # Initialize OpenAI client
 openai_client = OpenAI(api_key=Config.OPENAI_API_KEY)
@@ -25,19 +28,26 @@ main = Blueprint('main', __name__)
 def index():
     return render_template('index.html')
 
-# Sample in-memory storage for demonstration
-profiles = []
 memory_setting = {'enabled': False}
 
 @main.route('/api/profiles', methods=['GET', 'POST'])
 def manage_profiles():
     if request.method == 'GET':
-        return jsonify(profiles)
+        existing_profiles = get_existing_profiles()
+        return jsonify(existing_profiles)
     elif request.method == 'POST':
         data = request.get_json()
         profile_name = data.get('name')
-        if profile_name and profile_name not in profiles:
-            profiles.append(profile_name)
+        database_name = f"{profile_name}_database.db"
+        if profile_name and not UserProfile.query.filter_by(name=profile_name).first():
+            new_profile = UserProfile(session_id=str(uuid.uuid4()), name=profile_name, database_name=database_name)
+            db.session.add(new_profile)
+            db.session.commit()
+
+            # Create the new database file if it doesn't exist
+            if not os.path.exists(database_name):
+                create_db(database_name)
+
             return jsonify({'name': profile_name}), 201
         else:
             return jsonify({'error': 'Profile already exists or invalid name'}), 400
@@ -46,9 +56,9 @@ def manage_profiles():
 def select_profile():
     data = request.get_json()
     profile_name = data.get('name')
-    if profile_name in profiles:
-        # Here you can handle profile-specific logic
-        session['user_profile']['name'] = profile_name
+    profile = UserProfile.query.filter_by(name=profile_name).first()
+    if profile:
+        session['user_profile'] = {'name': profile_name, 'database_name': profile.database_name}
         return jsonify({'selected': profile_name}), 200
     else:
         return jsonify({'error': 'Profile not found'}), 404
@@ -248,6 +258,7 @@ def handle_special_message(data):
 
         if long_term_memory:
             response_message = "Long-term memory is now active."
+            add_long_term_memory(session_id, response_message)
         else:
             response_message = "Long-term memory is now inactive."
 
@@ -256,6 +267,7 @@ def handle_special_message(data):
 
         if chatroom_memory:
             response_message = "Chatroom memory is now active."
+            add_chatroom_memory(session_id, response_message)
         else:
             response_message = "Chatroom memory is now inactive."
 

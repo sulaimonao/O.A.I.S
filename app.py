@@ -6,6 +6,7 @@ from config import Config
 from app_extensions import db, migrate, socketio
 import os
 import uuid
+from utils.database import init_db, check_and_create_tables
 
 def create_app():
     app = Flask(__name__)
@@ -13,11 +14,19 @@ def create_app():
 
     register_extensions(app)
     register_blueprints(app)
-    
+
     @app.before_request
     def ensure_session_id():
         if 'id' not in session:
             session['id'] = str(uuid.uuid4())
+
+        if 'user_profile' in session:
+            profile_db = session['user_profile']['database_name']
+            app.config['SQLALCHEMY_BINDS'] = {
+                'profile': f'sqlite:///{profile_db}'
+            }
+            db.engine.dispose()
+            db.create_all(bind='profile')
 
     return app
 
@@ -31,12 +40,11 @@ def register_blueprints(app):
     app.register_blueprint(main)
 
 if __name__ == "__main__":
+    init_db()  # Initialize the main database
+    check_and_create_tables()  # Ensure necessary tables exist
     app = create_app()
-    
-    # Ensure necessary directories exist
     if not os.path.exists('uploads'):
         os.makedirs('uploads')
     if not os.path.exists('virtual_workspace'):
         os.makedirs('virtual_workspace')
-    
     socketio.run(app, debug=True)
