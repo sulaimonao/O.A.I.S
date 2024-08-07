@@ -1,0 +1,491 @@
+[
+    {
+        "file_name": "config.py",
+        "path": "/Users/akeemsulaimon/Documents/GitHub/O.A.I.S/config.py",
+        "functions": [],
+        "classes": [
+            "class Config:"
+        ],
+        "content": "import os\nfrom dotenv import load_dotenv\n\n# Load the environment variables from the .env file\nload_dotenv()\n\nclass Config:\n    OPENAI_API_KEY = os.getenv(\"OPENAI_API_KEY\")\n    GOOGLE_API_KEY = os.getenv(\"GOOGLE_API_KEY\")\n    OPENAI_MODEL = \"gpt-4o\"  # Default OpenAI model\n    GOOGLE_MODEL = \"models/gemini-1.5-pro\"  # Default Google Gemini model\n    TEMPERATURE = 0.9\n    MAX_TOKENS = 4000\n    TOP_P = 1.0\n    SYSTEM_PROMPT = \"You are a helpful assistant.\"\n    SQLALCHEMY_DATABASE_URI = os.getenv(\"SQLALCHEMY_DATABASE_URI\")\n    SQLALCHEMY_TRACK_MODIFICATIONS = False\n    SECRET_KEY = os.getenv(\"SECRET_KEY\")  # Add the secret key\n",
+        "history": [
+            {
+                "commit_hash": "f5507b3007d8c011f7bbdbce5c8c2ed789fce92b",
+                "author": "Akeem",
+                "date": "Wed",
+                "message": "Aug 7 12:28:44 2024 -0700 missing files"
+            },
+            {
+                "commit_hash": "61638470241830e50f8d6b58b26d62624977f33a",
+                "author": "Akeem",
+                "date": "Wed",
+                "message": "Aug 7 12:25:32 2024 -0700 missing files"
+            },
+            {
+                "commit_hash": "41935ef873010975cd4df3da88bffb7ce63bc743",
+                "author": "Akeem",
+                "date": "Sat",
+                "message": "Aug 3 12:21:52 2024 -0700 4o"
+            },
+            {
+                "commit_hash": "ccc43b4c6b26f2d661be3deeca276ad3f2236cb4",
+                "author": "Akeem",
+                "date": "Sat",
+                "message": "Aug 3 10:16:22 2024 -0700 fixing connecting names"
+            },
+            {
+                "commit_hash": "9d0b14c75c0b2cd6570768cb439d338de7d32cbc",
+                "author": "Akeem",
+                "date": "Wed",
+                "message": "Jul 31 13:45:39 2024 -0700 Initial commit"
+            }
+        ]
+    },
+    {
+        "file_name": "models.py",
+        "path": "/Users/akeemsulaimon/Documents/GitHub/O.A.I.S/models.py",
+        "functions": [
+            "def init_db():",
+            "def create_db():",
+            "def query_db(query, args=(), one=False):",
+            "def add_message(session_id, user_id, role, content, model):"
+        ],
+        "classes": [],
+        "content": "import sqlite3\nfrom contextlib import closing\nimport os\nimport logging\nfrom config import Config\n\nlogging.basicConfig(level=logging.INFO)\nDATABASE = Config.DATABASE\n\ndef init_db():\n    try:\n        if os.path.exists(DATABASE):\n            logging.info(\"Using existing database.\")\n        else:\n            create_db()\n            logging.info(\"Database created successfully.\")\n    except Exception as e:\n        logging.error(f\"Failed to initialize database: {e}\")\n\ndef create_db():\n    try:\n        with closing(sqlite3.connect(DATABASE)) as db:\n            with open('schema.sql', mode='r') as f:\n                db.cursor().executescript(f.read())\n            db.commit()\n    except Exception as e:\n        logging.error(f\"Failed to create database: {e}\")\n\ndef query_db(query, args=(), one=False):\n    try:\n        with closing(sqlite3.connect(DATABASE)) as db:\n            cur = db.execute(query, args)\n            rv = cur.fetchall()\n            db.commit()\n            return (rv[0] if rv else None) if one else rv\n    except Exception as e:\n        logging.error(f\"Database query failed: {e}\")\n        return None\n\ndef add_message(session_id, user_id, role, content, model):\n    try:\n        query_db(\n            'INSERT INTO messages (session_id, user_id, role, content, model) VALUES (?, ?, ?, ?, ?)',\n            [session_id, user_id, role, content, model]\n        )\n    except Exception as e:\n        logging.error(f\"Failed to add message: {e}\")\n\n# Other functions remain the same with added error handling and logging.\n",
+        "history": []
+    },
+    {
+        "file_name": "app_extensions.py",
+        "path": "/Users/akeemsulaimon/Documents/GitHub/O.A.I.S/app_extensions.py",
+        "functions": [],
+        "classes": [],
+        "content": "from flask_socketio import SocketIO\nfrom flask_sqlalchemy import SQLAlchemy\nfrom flask_migrate import Migrate\n\nsocketio = SocketIO()\ndb = SQLAlchemy()\nmigrate = Migrate()\n",
+        "history": []
+    },
+    {
+        "file_name": "requirements.txt",
+        "path": "/Users/akeemsulaimon/Documents/GitHub/O.A.I.S/requirements.txt",
+        "functions": [],
+        "classes": [],
+        "content": "python-dotenv\nflask\nflask-socketio\neventlet\ngoogle-generativeai\nexecnet\npyusb\npybluez\nbleak\nopencv-python\npyaudio\nFlask==2.0.2\npython-dotenv==0.19.2\nrequests==2.26.0\ngoogle-api-python-client==2.26.1\nsqlalchemy==1.4.27\npsycopg2-binary==2.9.2\n",
+        "history": [
+            {
+                "commit_hash": "e07435d619da753eaf93c399b0e56c2e5c5aefdf",
+                "author": "Akeem",
+                "date": "Tue",
+                "message": "Aug 6 11:29:28 2024 -0700 Update requirements.txt"
+            },
+            {
+                "commit_hash": "8a8908be3dc36d0ba4d6d9ac32e98b618cb00730",
+                "author": "Akeem",
+                "date": "Sat",
+                "message": "Aug 3 15:23:27 2024 -0700 working on memory stuff"
+            },
+            {
+                "commit_hash": "7a7f00b87e1aab95a27d854b5c08fd272a1834db",
+                "author": "Akeem",
+                "date": "Sat",
+                "message": "Aug 3 14:06:08 2024 -0700 process"
+            },
+            {
+                "commit_hash": "9d0b14c75c0b2cd6570768cb439d338de7d32cbc",
+                "author": "Akeem",
+                "date": "Wed",
+                "message": "Jul 31 13:45:39 2024 -0700 Initial commit"
+            }
+        ]
+    },
+    {
+        "file_name": "README.md",
+        "path": "/Users/akeemsulaimon/Documents/GitHub/O.A.I.S/README.md",
+        "functions": [],
+        "classes": [],
+        "content": "# O.A.I.S\n\n![O.A.I.S Logo](static/images/logo.png)\n\n## Overview\n\nO.A.I.S is an AI-powered system designed for dynamic interactions and integrations. The project leverages advanced language models and various tools to provide an extensible platform for development.\n\n## Features\n\n- **Dynamic Code Generation:** Generate and execute code on the fly using OpenAI models.\n- **Database Management**\n- **User Profiles**\n- **File Operations**\n- **Hardware Interaction:** List USB devices, discover Bluetooth devices, capture images from the webcam, and record audio.\n- **Extensible and Modular:** Easily extend the system with additional functionality and integrations.\n\n## Setup\n\n### Prerequisites\n\n- Python 3.8 or higher\n- pip\n- [Homebrew](https://brew.sh/) (for macOS)\n\n### Installation\n\n1. Clone the repository:\n\n    ```sh\n    git clone https://github.com/sulaimonao/O.A.I.S.git\n    cd O.A.I.S\n    ```\n\n2. Create a virtual environment and activate it:\n\n    ```sh\n    python -m venv venv\n    source venv/bin/activate\n    ```\n\n3. Install dependencies:\n\n    ```sh\n    pip install -r requirements.txt\n    ```\n\n4. Initialize the database:\n\n    ```sh\n    python -m utils.database\n    ```\n\n5. Install additional system dependencies (macOS):\n\n    ```sh\n    brew install portaudio\n    ```\n\n6. Run the application:\n\n    ```sh\n    python app.py\n    ```\n\n## Usage\n\n### Running the Application\n\n1. Start the application by running:\n\n    ```sh\n    python app.py\n    ```\n\n2. Open your web browser and navigate to `http://localhost:5000`.\n\n3. Interact with the system through the web interface.\n\n### Available Endpoints\n\n- `/list_usb_devices`: List connected USB devices.\n- `/list_bluetooth_devices`: Discover nearby Bluetooth devices.\n- `/capture_image`: Capture an image from the webcam.\n- `/record_audio`: Record audio from the microphone.\n- `/execute_command`: Execute OS commands.\n\n### Customizing the System\n\n1. **Modifying Configurations:**\n   Edit the `config.py` file to update API keys and other configurations.\n\n2. **Adding New Functionality:**\n   Add new functions in the `utils/` directory and integrate them into `app.py`.\n\n## Contributing\n\nContributions are welcome! Please follow these steps to contribute:\n\n## License\n\n[MIT License](LICENSE)\n\n## Acknowledgments\n\n- [OpenAI](https://www.openai.com/)\n- [Gemini](https://www.gemini.google.com/)\n- [Homebrew](https://brew.sh/) for managing macOS packages.\n- [Flask](https://flask.palletsprojects.com/) for providing a lightweight web framework.\n",
+        "history": [
+            {
+                "commit_hash": "3c624b813a48b2691c9d81f5546b4ab528aae032",
+                "author": "Akeem",
+                "date": "Tue",
+                "message": "Aug 6 11:43:05 2024 -0700 Update README.md"
+            },
+            {
+                "commit_hash": "8c38535188155e36ba07c212b29b4669de180045",
+                "author": "Akeem",
+                "date": "Tue",
+                "message": "Aug 6 11:32:00 2024 -0700 updated Readme"
+            },
+            {
+                "commit_hash": "b5b0f358a59ba5e0d7c8c3158fced43deb90427d",
+                "author": "Akeem",
+                "date": "Wed",
+                "message": "Jul 31 15:20:19 2024 -0700 Update README.md"
+            },
+            {
+                "commit_hash": "ac72cb7e96734c760e8481b3b57ed0d42ff8c795",
+                "author": "Akeem",
+                "date": "Wed",
+                "message": "Jul 31 15:06:43 2024 -0700 Create README.md"
+            }
+        ]
+    },
+    {
+        "file_name": "app.py",
+        "path": "/Users/akeemsulaimon/Documents/GitHub/O.A.I.S/app.py",
+        "functions": [
+            "def create_app():",
+            "def register_extensions(app):",
+            "def register_blueprints(app):"
+        ],
+        "classes": [],
+        "content": "from flask import Flask\nfrom config import Config\nfrom app_extensions import db, migrate, socketio\nfrom routes import main\nimport os\n\ndef create_app():\n    app = Flask(__name__)\n    app.config.from_object(Config)\n\n    register_extensions(app)\n    register_blueprints(app)\n\n    return app\n\ndef register_extensions(app):\n    db.init_app(app)\n    migrate.init_app(app, db)\n    socketio.init_app(app, cors_allowed_origins=\"*\")  # Ensure CORS is allowed\n\ndef register_blueprints(app):\n    app.register_blueprint(main)\n\nif __name__ == \"__main__\":\n    app = create_app()\n    if not os.path.exists('uploads'):\n        os.makedirs('uploads')\n    if not os.path.exists('virtual_workspace'):\n        os.makedirs('virtual_workspace')\n    socketio.run(app, debug=True)\n",
+        "history": []
+    },
+    {
+        "file_name": "folder_structure_versioncontrol.py",
+        "path": "/Users/akeemsulaimon/Documents/GitHub/O.A.I.S/folder_structure_versioncontrol.py",
+        "functions": [
+            "def extract_file_data(file_path):",
+            "def get_git_history(file_path):",
+            "def worker(file_queue, data_list):",
+            "def create_database_from_files(folder_path, output_file, extensions=None, num_threads=5):"
+        ],
+        "classes": [],
+        "content": "import os\nimport json\nimport threading\nfrom queue import Queue\nfrom datetime import datetime\nimport subprocess\nimport re\n\ndef extract_file_data(file_path):\n    try:\n        with open(file_path, 'r', encoding='utf-8', errors='ignore') as file:\n            lines = file.readlines()\n            functions = [line.strip() for line in lines if line.strip().startswith('def ')]\n            classes = [line.strip() for line in lines if line.strip().startswith('class ')]\n            content = ''.join(lines)\n            return {\n                'file_name': os.path.basename(file_path),\n                'path': file_path,\n                'functions': functions,\n                'classes': classes,\n                'content': content\n            }\n    except Exception as e:\n        print(f\"Error reading {file_path}: {e}\")\n        return None\n\ndef get_git_history(file_path):\n    try:\n        result = subprocess.run(['git', 'log', '--pretty=format:%H %an %ad %s', '--', file_path],\n                                capture_output=True, text=True, check=True)\n        history = []\n        log_pattern = re.compile(r'([a-f0-9]+) (.+?) (.+?) (.+)')\n        for line in result.stdout.split('\\n'):\n            match = log_pattern.match(line)\n            if match:\n                commit_hash, author, date, message = match.groups()\n                history.append({\n                    'commit_hash': commit_hash,\n                    'author': author,\n                    'date': date,\n                    'message': message\n                })\n        return history\n    except Exception as e:\n        print(f\"Error retrieving git history for {file_path}: {e}\")\n        return []\n\ndef worker(file_queue, data_list):\n    while not file_queue.empty():\n        file_path = file_queue.get()\n        file_data = extract_file_data(file_path)\n        if file_data:\n            file_data['history'] = get_git_history(file_path)\n            data_list.append(file_data)\n        file_queue.task_done()\n\ndef create_database_from_files(folder_path, output_file, extensions=None, num_threads=5):\n    file_queue = Queue()\n    data_list = []\n    threads = []\n\n    for root, dirs, files in os.walk(folder_path):\n        dirs[:] = [d for d in dirs if d != '__pycache__']  # Ignore __pycache__ directories\n        for file in files:\n            if extensions and not any(file.endswith(ext) for ext in extensions):\n                continue\n            file_path = os.path.join(root, file)\n            file_queue.put(file_path)\n\n    for _ in range(num_threads):\n        thread = threading.Thread(target=worker, args=(file_queue, data_list))\n        thread.start()\n        threads.append(thread)\n\n    for thread in threads:\n        thread.join()\n\n    with open(output_file, 'w', encoding='utf-8') as f:\n        json.dump(data_list, f, indent=4)\n\n# Example usage\nfolder_path = '/Users/akeemsulaimon/Documents/GitHub/O.A.I.S'\noutput_json_file = 'memory_database.json'\nfile_extensions = ['.py', '.txt', '.cc', '.xcode', '.xcodeproj', '.xcworkspace', '.swift', '.dart', '.plist', '.xcconfig', '.js', '.md', '.ipynb', '.mindnode', '.cs', '.cpp', '.css', '.html']  # Add or remove extensions as needed\n\ncreate_database_from_files(folder_path, output_json_file, file_extensions)\n",
+        "history": []
+    },
+    {
+        "file_name": "random_secret_key.py",
+        "path": "/Users/akeemsulaimon/Documents/GitHub/O.A.I.S/random_secret_key.py",
+        "functions": [],
+        "classes": [],
+        "content": "import os\nprint(os.urandom(24).hex())\n",
+        "history": []
+    },
+    {
+        "file_name": "poem.txt",
+        "path": "/Users/akeemsulaimon/Documents/GitHub/O.A.I.S/virtual_workspace/poem.txt",
+        "functions": [],
+        "classes": [],
+        "content": "A poem about the ocean:\nVast and deep, the ocean blue,\nWaves that dance and skies so true.\nWhispers of the sea breeze call,\nMysteries beneath, they enthrall.",
+        "history": [
+            {
+                "commit_hash": "98072c7dad4e6ed1c73e8117335d40e442df9f3f",
+                "author": "Akeem",
+                "date": "Sat",
+                "message": "Aug 3 14:11:32 2024 -0700 Upgrades"
+            }
+        ]
+    },
+    {
+        "file_name": "routes.py",
+        "path": "/Users/akeemsulaimon/Documents/GitHub/O.A.I.S/routes.py",
+        "functions": [
+            "def index():",
+            "def upload():",
+            "def handle_message(data):"
+        ],
+        "classes": [],
+        "content": "from flask import Blueprint, render_template, request, jsonify, session\nimport os\nimport json\nimport logging\nfrom flask_socketio import SocketIO, emit\nfrom openai import OpenAI\nimport google.generativeai as genai\nfrom config import Config\nfrom utils.intent_parser import parse_intent, handle_write_to_file, handle_execute_code\nfrom utils.code_execution import execute_code\nfrom utils.file_operations import read_file, write_file\nfrom utils.database import init_db, add_message, get_conversation_history, get_user_profile, set_user_profile\n\nmain = Blueprint('main', __name__)\nsocketio = SocketIO()\n\n# Initialize OpenAI client\nopenai_client = OpenAI(api_key=Config.OPENAI_API_KEY)\n\n# Configure Google Gemini\ngenai.configure(api_key=Config.GOOGLE_API_KEY)\n\n# Initialize the database\ninit_db()\n\n# Cache for storing previously generated code and results\nresource_cache = {}\n\n@main.route('/')\ndef index():\n    session['id'] = os.urandom(24).hex()\n    return render_template('index.html')\n\n@main.route('/upload', methods=['POST'])\ndef upload():\n    if 'file' not in request.files:\n        return jsonify({'error': 'No file part'})\n    file = request.files['file']\n    if file.filename == '':\n        return jsonify({'error': 'No selected file'})\n    if file:\n        filepath = os.path.join('uploads', file.filename)\n        file.save(filepath)\n        return jsonify({'filename': file.filename})\n\n@socketio.on('message')\ndef handle_message(data):\n    logging.debug(f\"Received message: {data}\")\n    session_id = session.get('id')\n    user_id = session_id  # This could be enhanced to use actual user IDs in a real system\n\n    if 'user_profile' not in session:\n        session['user_profile'] = {'name': None, 'awaiting_confirmation': False}\n\n    data = json.loads(data)\n    message = data['message']\n    model = data.get('model') or (Config.GOOGLE_MODEL if data['provider'] == 'google' else Config.OPENAI_MODEL)\n    provider = data['provider']\n    filename = data.get('filename')\n    custom_engine = data.get('customEngine')\n    config = data.get('config', {})\n\n    if custom_engine:\n        model = custom_engine\n\n    if provider == 'google' and model in ['gpt-4', 'gpt-4-mini']:\n        emit('message', {'error': 'Invalid model for the selected provider.'})\n        return\n\n    if provider == 'openai' and model in ['gemini-1.5-pro', 'gemini-1.5-flash']:\n        emit('message', {'error': 'Invalid model for the selected provider.'})\n        return\n\n    logging.debug(f\"Message: {message}, Model: {model}, Provider: {provider}, Filename: {filename}, Config: {config}\")\n\n    add_message(session_id, user_id, 'user', message, provider)\n\n    # Handle user introduction and confirmation\n    if session['user_profile']['awaiting_confirmation']:\n        if message.lower() in ['yes', 'y']:\n            session['user_profile']['awaiting_confirmation'] = False\n            set_user_profile(session_id, session['user_profile']['name'])\n            response_message = f\"Great! I will remember your name, {session['user_profile']['name']}.\"\n            add_message(session_id, user_id, 'assistant', response_message, provider)\n            emit('message', {'user': message, 'assistant': response_message})\n        else:\n            session['user_profile']['name'] = None\n            session['user_profile']['awaiting_confirmation'] = False\n            response_message = \"Okay, I won't remember your name.\"\n            add_message(session_id, user_id, 'assistant', response_message, provider)\n            emit('message', {'user': message, 'assistant': response_message})\n        return\n\n    if \"my name is\" in message.lower():\n        parts = message.lower().split(\"my name is\", 1)\n        if len(parts) > 1 and parts[1].strip():\n            name = parts[1].strip().split(' ')[0]\n            session['user_profile']['name'] = name\n            session['user_profile']['awaiting_confirmation'] = True\n            response_message = f\"Did I get that right? Is your name {name}? Please reply with 'yes' or 'no'.\"\n            add_message(session_id, user_id, 'assistant', response_message, provider)\n            emit('message', {'user': message, 'assistant': response_message})\n        else:\n            response_message = \"I didn't catch your name. Please tell me again by saying 'My name is [Your Name]'.\"\n            add_message(session_id, user_id, 'assistant', response_message, provider)\n            emit('message', {'user': message, 'assistant': response_message})\n        return\n\n    if \"what is my name\" in message.lower() or \"do you remember me\" in message.lower():\n        name = session['user_profile']['name']\n        if not name:\n            profile = get_user_profile(session_id)\n            if profile:\n                name = profile[0]\n                session['user_profile']['name'] = name\n\n        if name:\n            response_message = f\"Your name is {name}.\"\n        else:\n            response_message = \"I don't know your name. Please tell me your name by saying 'My name is [Your Name]'.\"\n        add_message(session_id, user_id, 'assistant', response_message, provider)\n        emit('message', {'user': message, 'assistant': response_message})\n        return\n\n    intent = parse_intent(message)\n\n    if intent == \"write_to_file\":\n        content_response = generate_code_via_llm(message, model, provider, config)\n        if 'code' in content_response:\n            content = content_response['code']\n            result = handle_write_to_file(message, content)\n            add_message(session_id, user_id, 'assistant', result, provider)\n            emit('message', {'user': message, 'result': result})\n            logging.debug(f\"Emitting write_to_file result: {result}\")\n        else:\n            emit('message', {'user': message, 'error': content_response['error']})\n            logging.error(f'Error generating content: {content_response[\"error\"]}')\n    elif intent == \"execute_code\":\n        code_response = generate_code_via_llm(message, model, provider, config)\n        if 'code' in code_response:\n            result = handle_execute_code(message, code_response['code'])\n            add_message(session_id, user_id, 'assistant', result, provider)\n            emit('message', {'user': message, 'result': result})\n            logging.debug(f\"Emitting execute_code result: {result}\")\n        else:\n            emit('message', {'user': message, 'error': code_response['error']})\n            logging.error(f'Error generating code: {code_response[\"error\"]}')\n    elif \"generate code\" in message.lower():\n        code_response = generate_code_via_llm(message, model, provider, config)\n        if 'code' in code_response:\n            result = execute_code(code_response['code'])\n            write_file('output.txt', result)\n            add_message(session_id, user_id, 'assistant', result, provider)\n            emit('message', {'user': message, 'code': code_response['code'], 'result': result})\n            logging.debug(f'Emitting code response: {code_response[\"code\"]}')\n        else:\n            emit('message', {'user': message, 'error': code_response['error']})\n            logging.error(f'Error emitting code response: {code_response[\"error\"]}')\n    else:\n        history = get_conversation_history(session_id)\n        history.append({\"role\": \"system\", \"content\": Config.SYSTEM_PROMPT})\n        history.append({\"role\": \"user\", \"content\": message})\n        try:\n            if provider == 'openai':\n                response = openai_client.Chat.completions.create(\n                    model=model,\n                    messages=history,\n                    max_tokens=config.get('maxTokens', Config.MAX_TOKENS),\n                    temperature=config.get('temperature', Config.TEMPERATURE),\n                    top_p=config.get('topP', Config.TOP_P)\n                )\n                content = response['choices'][0]['message']['content']\n            elif provider == 'google':\n                genai_model = genai.GenerativeModel(model)\n                if filename:\n                    filepath = os.path.join('uploads', filename)\n                    file = genai.upload_file(filepath)\n                    response = genai_model.generate_content([message, file])\n                else:\n                    response = genai_model.generate_content(message)\n                content = response.text\n\n            add_message(session_id, user_id, 'assistant', content, provider)\n            logging.debug(f'{provider.capitalize()} Response: {content}')\n            emit('message', {'user': message, 'assistant': content})\n        except Exception as e:\n            logging.error(f'Error with {provider.capitalize()}: {str(e)}')\n            emit('message', {'error': str(e)})\n",
+        "history": []
+    },
+    {
+        "file_name": "output.py",
+        "path": "/Users/akeemsulaimon/Documents/GitHub/O.A.I.S/virtual_workspace/output.py",
+        "functions": [],
+        "classes": [],
+        "content": "import matplotlib.pyplot as plt\n\n# Define the circle parameters\nradius = 5\nmax_axis = 10\n\n# Create a figure and axes\nfig, ax = plt.subplots()\n\n# Create a circle patch\ncircle = plt.Circle((0, 0), radius, color='red')\n\n# Add the circle to the axes\nax.add_patch(circle)\n\n# Set the axis limits\nax.set_xlim([-max_axis, max_axis])\nax.set_ylim([-max_axis, max_axis])\n\n# Set aspect ratio to equal\nax.set_aspect('equal')\n\n# Display the plot\nplt.show()",
+        "history": []
+    },
+    {
+        "file_name": "app.py",
+        "path": "/Users/akeemsulaimon/Documents/GitHub/O.A.I.S/uploads/app.py",
+        "functions": [
+            "def create_app():",
+            "def register_extensions(app):",
+            "def register_blueprints(app):"
+        ],
+        "classes": [],
+        "content": "from flask import Flask\nfrom config import Config\nfrom app_extensions import db, migrate, socketio\nfrom routes import main\nimport os\n\ndef create_app():\n    app = Flask(__name__)\n    app.config.from_object(Config)\n\n    register_extensions(app)\n    register_blueprints(app)\n\n    return app\n\ndef register_extensions(app):\n    db.init_app(app)\n    migrate.init_app(app, db)\n    socketio.init_app(app)\n\ndef register_blueprints(app):\n    app.register_blueprint(main)\n\nif __name__ == \"__main__\":\n    app = create_app()\n    if not os.path.exists('uploads'):\n        os.makedirs('uploads')\n    if not os.path.exists('virtual_workspace'):\n        os.makedirs('virtual_workspace')\n    socketio.run(app, debug=True)\n",
+        "history": []
+    },
+    {
+        "file_name": "routes.py",
+        "path": "/Users/akeemsulaimon/Documents/GitHub/O.A.I.S/uploads/routes.py",
+        "functions": [
+            "def index():",
+            "def upload():",
+            "def handle_message(data):"
+        ],
+        "classes": [],
+        "content": "from flask import Blueprint, render_template, request, jsonify, session\nimport os\nimport json\nimport logging\nfrom flask_socketio import SocketIO, emit\nfrom openai import OpenAI\nimport google.generativeai as genai\nfrom config import Config\nfrom utils.intent_parser import parse_intent, handle_write_to_file, handle_execute_code\nfrom utils.code_execution import execute_code\nfrom utils.file_operations import read_file, write_file\nfrom utils.database import init_db, add_message, get_conversation_history, get_user_profile, set_user_profile\n\nmain = Blueprint('main', __name__)\nsocketio = SocketIO()\n\n# Initialize OpenAI client\nopenai_client = OpenAI(api_key=Config.OPENAI_API_KEY)\n\n# Configure Google Gemini\ngenai.configure(api_key=Config.GOOGLE_API_KEY)\n\n# Initialize the database\ninit_db()\n\n# Cache for storing previously generated code and results\nresource_cache = {}\n\n@main.route('/')\ndef index():\n    session['id'] = os.urandom(24).hex()\n    return render_template('index.html')\n\n@main.route('/upload', methods=['POST'])\ndef upload():\n    if 'file' not in request.files:\n        return jsonify({'error': 'No file part'})\n    file = request.files['file']\n    if file.filename == '':\n        return jsonify({'error': 'No selected file'})\n    if file:\n        filepath = os.path.join('uploads', file.filename)\n        file.save(filepath)\n        return jsonify({'filename': file.filename})\n\n@socketio.on('message')\ndef handle_message(data):\n    logging.debug(f\"Received message: {data}\")\n    session_id = session.get('id')\n    user_id = session_id  # This could be enhanced to use actual user IDs in a real system\n\n    if 'user_profile' not in session:\n        session['user_profile'] = {'name': None, 'awaiting_confirmation': False}\n\n    data = json.loads(data)\n    message = data['message']\n    model = data.get('model') or (Config.GOOGLE_MODEL if data['provider'] == 'google' else Config.OPENAI_MODEL)\n    provider = data['provider']\n    filename = data.get('filename')\n    custom_engine = data.get('customEngine')\n    config = data.get('config', {})\n\n    if custom_engine:\n        model = custom_engine\n\n    if provider == 'google' and model in ['gpt-4', 'gpt-4-mini']:\n        emit('message', {'error': 'Invalid model for the selected provider.'})\n        return\n\n    if provider == 'openai' and model in ['gemini-1.5-pro', 'gemini-1.5-flash']:\n        emit('message', {'error': 'Invalid model for the selected provider.'})\n        return\n\n    logging.debug(f\"Message: {message}, Model: {model}, Provider: {provider}, Filename: {filename}, Config: {config}\")\n\n    add_message(session_id, user_id, 'user', message, provider)\n\n    # Handle user introduction and confirmation\n    if session['user_profile']['awaiting_confirmation']:\n        if message.lower() in ['yes', 'y']:\n            session['user_profile']['awaiting_confirmation'] = False\n            set_user_profile(session_id, session['user_profile']['name'])\n            response_message = f\"Great! I will remember your name, {session['user_profile']['name']}.\"\n            add_message(session_id, user_id, 'assistant', response_message, provider)\n            emit('message', {'user': message, 'assistant': response_message})\n        else:\n            session['user_profile']['name'] = None\n            session['user_profile']['awaiting_confirmation'] = False\n            response_message = \"Okay, I won't remember your name.\"\n            add_message(session_id, user_id, 'assistant', response_message, provider)\n            emit('message', {'user': message, 'assistant': response_message})\n        return\n\n    if \"my name is\" in message.lower():\n        parts = message.lower().split(\"my name is\", 1)\n        if len(parts) > 1 and parts[1].strip():\n            name = parts[1].strip().split(' ')[0]\n            session['user_profile']['name'] = name\n            session['user_profile']['awaiting_confirmation'] = True\n            response_message = f\"Did I get that right? Is your name {name}? Please reply with 'yes' or 'no'.\"\n            add_message(session_id, user_id, 'assistant', response_message, provider)\n            emit('message', {'user': message, 'assistant': response_message})\n        else:\n            response_message = \"I didn't catch your name. Please tell me again by saying 'My name is [Your Name]'.\"\n            add_message(session_id, user_id, 'assistant', response_message, provider)\n            emit('message', {'user': message, 'assistant': response_message})\n        return\n\n    if \"what is my name\" in message.lower() or \"do you remember me\" in message.lower():\n        name = session['user_profile']['name']\n        if not name:\n            profile = get_user_profile(session_id)\n            if profile:\n                name = profile[0]\n                session['user_profile']['name'] = name\n\n        if name:\n            response_message = f\"Your name is {name}.\"\n        else:\n            response_message = \"I don't know your name. Please tell me your name by saying 'My name is [Your Name]'.\"\n        add_message(session_id, user_id, 'assistant', response_message, provider)\n        emit('message', {'user': message, 'assistant': response_message})\n        return\n\n    intent = parse_intent(message)\n\n    if intent == \"write_to_file\":\n        content_response = generate_code_via_llm(message, model, provider, config)\n        if 'code' in content_response:\n            content = content_response['code']\n            result = handle_write_to_file(message, content)\n            add_message(session_id, user_id, 'assistant', result, provider)\n            emit('message', {'user': message, 'result': result})\n            logging.debug(f\"Emitting write_to_file result: {result}\")\n        else:\n            emit('message', {'user': message, 'error': content_response['error']})\n            logging.error(f'Error generating content: {content_response[\"error\"]}')\n    elif intent == \"execute_code\":\n        code_response = generate_code_via_llm(message, model, provider, config)\n        if 'code' in code_response:\n            result = handle_execute_code(message, code_response['code'])\n            add_message(session_id, user_id, 'assistant', result, provider)\n            emit('message', {'user': message, 'result': result})\n            logging.debug(f\"Emitting execute_code result: {result}\")\n        else:\n            emit('message', {'user': message, 'error': code_response['error']})\n            logging.error(f'Error generating code: {code_response[\"error\"]}')\n    elif \"generate code\" in message.lower():\n        code_response = generate_code_via_llm(message, model, provider, config)\n        if 'code' in code_response:\n            result = execute_code(code_response['code'])\n            write_file('output.txt', result)\n            add_message(session_id, user_id, 'assistant', result, provider)\n            emit('message', {'user': message, 'code': code_response['code'], 'result': result})\n            logging.debug(f'Emitting code response: {code_response[\"code\"]}')\n        else:\n            emit('message', {'user': message, 'error': code_response['error']})\n            logging.error(f'Error emitting code response: {code_response[\"error\"]}')\n    else:\n        history = get_conversation_history(session_id)\n        history.append({\"role\": \"system\", \"content\": Config.SYSTEM_PROMPT})\n        history.append({\"role\": \"user\", \"content\": message})\n        try:\n            if provider == 'openai':\n                response = openai_client.Chat.completions.create(\n                    model=model,\n                    messages=history,\n                    max_tokens=config.get('maxTokens', Config.MAX_TOKENS),\n                    temperature=config.get('temperature', Config.TEMPERATURE),\n                    top_p=config.get('topP', Config.TOP_P)\n                )\n                content = response['choices'][0]['message']['content']\n            elif provider == 'google':\n                genai_model = genai.GenerativeModel(model)\n                if filename:\n                    filepath = os.path.join('uploads', filename)\n                    file = genai.upload_file(filepath)\n                    response = genai_model.generate_content([message, file])\n                else:\n                    response = genai_model.generate_content(message)\n                content = response.text\n\n            add_message(session_id, user_id, 'assistant', content, provider)\n            logging.debug(f'{provider.capitalize()} Response: {content}')\n            emit('message', {'user': message, 'assistant': content})\n        except Exception as e:\n            logging.error(f'Error with {provider.capitalize()}: {str(e)}')\n            emit('message', {'error': str(e)})\n",
+        "history": []
+    },
+    {
+        "file_name": "code_execution.py",
+        "path": "/Users/akeemsulaimon/Documents/GitHub/O.A.I.S/utils/code_execution.py",
+        "functions": [
+            "def virtualenv(name):",
+            "def execute_code(code):"
+        ],
+        "classes": [],
+        "content": "import os\nimport subprocess\nimport logging\nimport uuid\nfrom contextlib import contextmanager\n\n@contextmanager\ndef virtualenv(name):\n    env_path = os.path.join('virtual_workspace', name)\n    try:\n        subprocess.run(['python3', '-m', 'venv', env_path], check=True)\n        yield env_path\n    finally:\n        subprocess.run(['rm', '-rf', env_path])\n\ndef execute_code(code):\n    env_name = str(uuid.uuid4())\n    with virtualenv(env_name) as env_path:\n        activate_script = os.path.join(env_path, 'bin', 'activate')\n        exec_script = os.path.join(env_path, 'exec_code.py')\n\n        # Write the code to a Python script\n        with open(exec_script, 'w') as f:\n            f.write(code)\n\n        # Run the script in the virtual environment\n        try:\n            result = subprocess.run(\n                f\"source {activate_script} && pip install matplotlib numpy && python {exec_script}\",\n                shell=True,\n                check=True,\n                capture_output=True,\n                text=True\n            )\n            logging.debug(f\"Execution result: {result.stdout}\")\n            return result.stdout\n        except subprocess.CalledProcessError as e:\n            logging.error(f\"Error during code execution: {e.stderr}\")\n            return e.stderr\n",
+        "history": []
+    },
+    {
+        "file_name": "database.py",
+        "path": "/Users/akeemsulaimon/Documents/GitHub/O.A.I.S/utils/database.py",
+        "functions": [
+            "def init_db():",
+            "def create_db():",
+            "def query_db(query, args=(), one=False):",
+            "def add_message(session_id, user_id, role, content, model):",
+            "def get_conversation_history(session_id):",
+            "def get_user_profile(session_id):",
+            "def set_user_profile(session_id, name):",
+            "def get_conversation_history_for_user(user_id):",
+            "def create_new_user(username):",
+            "def get_all_user_profiles():"
+        ],
+        "classes": [],
+        "content": "import sqlite3\nfrom contextlib import closing\nimport os\n\nDATABASE = 'conversation.db'\n\ndef init_db():\n    if os.path.exists(DATABASE):\n        user_input = input(\"Database already exists. Do you want to create a new one? (yes/no): \").strip().lower()\n        if user_input == 'yes':\n            os.remove(DATABASE)\n            create_db()\n        else:\n            print(\"Using existing database.\")\n    else:\n        create_db()\n\ndef create_db():\n    with closing(sqlite3.connect(DATABASE)) as db:\n        with open('schema.sql', mode='r') as f:\n            db.cursor().executescript(f.read())\n        db.commit()\n\ndef query_db(query, args=(), one=False):\n    with closing(sqlite3.connect(DATABASE)) as db:\n        cur = db.execute(query, args)\n        rv = cur.fetchall()\n        db.commit()\n        return (rv[0] if rv else None) if one else rv\n\ndef add_message(session_id, user_id, role, content, model):\n    query_db(\n        'INSERT INTO messages (session_id, user_id, role, content, model) VALUES (?, ?, ?, ?, ?)',\n        [session_id, user_id, role, content, model]\n    )\n\ndef get_conversation_history(session_id):\n    return query_db(\n        'SELECT role, content FROM messages WHERE session_id = ? ORDER BY timestamp',\n        [session_id]\n    )\n\ndef get_user_profile(session_id):\n    return query_db(\n        'SELECT name FROM user_profiles WHERE session_id = ?',\n        [session_id],\n        one=True\n    )\n\ndef set_user_profile(session_id, name):\n    query_db(\n        'INSERT OR REPLACE INTO user_profiles (session_id, name) VALUES (?, ?)',\n        [session_id, name]\n    )\n\ndef get_conversation_history_for_user(user_id):\n    return query_db(\n        'SELECT role, content FROM messages WHERE user_id = ? ORDER BY timestamp',\n        [user_id]\n    )\n\ndef create_new_user(username):\n    query_db(\n        'INSERT INTO user_profiles (name) VALUES (?)',\n        [username]\n    )\n\ndef get_all_user_profiles():\n    return query_db(\n        'SELECT name FROM user_profiles'\n    )\n",
+        "history": []
+    },
+    {
+        "file_name": "__init__.py",
+        "path": "/Users/akeemsulaimon/Documents/GitHub/O.A.I.S/utils/__init__.py",
+        "functions": [],
+        "classes": [],
+        "content": "# utils/__init__.py\n",
+        "history": []
+    },
+    {
+        "file_name": "llm.py",
+        "path": "/Users/akeemsulaimon/Documents/GitHub/O.A.I.S/utils/llm.py",
+        "functions": [
+            "def generate_code_via_llm(message, model, provider, config):",
+            "def generate_code_openai(message, model, config):",
+            "def generate_code_google(message, model, config):"
+        ],
+        "classes": [],
+        "content": "import openai\nimport google.generativeai as genai\nfrom config import Config\n\ndef generate_code_via_llm(message, model, provider, config):\n    if provider == 'openai':\n        return generate_code_openai(message, model, config)\n    elif provider == 'google':\n        return generate_code_google(message, model, config)\n    else:\n        return {'error': 'Unsupported provider'}\n\ndef generate_code_openai(message, model, config):\n    try:\n        response = openai.Completion.create(\n            engine=model,\n            prompt=message,\n            max_tokens=config.get('maxTokens', Config.MAX_TOKENS),\n            temperature=config.get('temperature', Config.TEMPERATURE),\n            top_p=config.get('topP', Config.TOP_P),\n            n=1,\n            stop=None\n        )\n        code = response.choices[0].text.strip()\n        return {'code': code}\n    except Exception as e:\n        return {'error': str(e)}\n\ndef generate_code_google(message, model, config):\n    try:\n        genai_model = genai.GenerativeModel(model)\n        response = genai_model.generate_content(message)\n        code = response.text.strip()\n        return {'code': code}\n    except Exception as e:\n        return {'error': str(e)}\n",
+        "history": []
+    },
+    {
+        "file_name": "intent_parser.py",
+        "path": "/Users/akeemsulaimon/Documents/GitHub/O.A.I.S/utils/intent_parser.py",
+        "functions": [
+            "def parse_intent(message):",
+            "def handle_write_to_file(message, content):",
+            "def handle_execute_code(message, generated_code):"
+        ],
+        "classes": [],
+        "content": "import logging\nimport re\nfrom .file_operations import write_file\nfrom .code_execution import execute_code\n\nlogging.basicConfig(level=logging.DEBUG)\n\ndef parse_intent(message):\n    logging.debug(f\"Parsing intent for message: {message.lower()}\")\n\n    if any(keyword in message.lower() for keyword in [\"write to file\", \"create to file\", \"save a file\"]):\n        return \"write_to_file\"\n    if \"write/execute\" in message.lower() or \"generate code\" in message.lower():\n        return \"execute_code\"\n\n    return \"unknown\"\n\ndef handle_write_to_file(message, content):\n    filename = \"output\"\n    extension = \".txt\"\n\n    if \"poem\" in message.lower():\n        filename = \"poem\"\n    elif \"song\" in message.lower():\n        filename = \"song\"\n    elif \"text\" in message.lower():\n        filename = \"text\"\n    elif \"image\" in message.lower():\n        filename = \"image\"\n        extension = \".png\"  # Placeholder, should be image processing logic\n    elif \"audio\" in message.lower():\n        filename = \"audio\"\n        extension = \".mp3\"  # Placeholder, should be audio processing logic\n    elif \"data\" in message.lower():\n        filename = \"data\"\n        extension = \".csv\"  # Placeholder, should be data processing logic\n\n    full_filename = f\"{filename}{extension}\"\n    result = write_file(full_filename, content)\n    logging.debug(f\"Content written to file: {full_filename}, Result: {result}\")\n    return f\"Content has been written to {full_filename}\"\n\ndef handle_execute_code(message, generated_code):\n    # Detect the language and clean the code\n    match = re.search(r\"```(\\w+)\\s+(.*?)\\s+```\", generated_code, re.DOTALL)\n    if match:\n        language = match.group(1)\n        code = match.group(2)\n    else:\n        language = \"text\"\n        code = generated_code.strip('```').strip()\n\n    # Determine the file extension based on the language\n    extension = {\n        \"python\": \".py\",\n        \"bash\": \".sh\",\n        \"javascript\": \".js\",\n        \"text\": \".txt\"\n    }.get(language, \".txt\")\n\n    filename = f\"output{extension}\"\n\n    # Execute the code if it's a Python script\n    if language == \"python\":\n        result = execute_code(code)\n        logging.debug(f\"Python code executed. Result: {result}\")\n    else:\n        result = f\"Code in {language} language saved to {filename}\"\n\n    # Write the cleaned code to a file\n    write_file(filename, code)\n    logging.debug(f\"Code written to file: {filename}\")\n    return result\n",
+        "history": []
+    },
+    {
+        "file_name": "system_operations.py",
+        "path": "/Users/akeemsulaimon/Documents/GitHub/O.A.I.S/utils/system_operations.py",
+        "functions": [
+            "def list_usb_devices():",
+            "def capture_image():",
+            "def record_audio(duration=5, filename='recording.wav'):",
+            "def execute_command(command):"
+        ],
+        "classes": [],
+        "content": "import usb.core\nimport usb.util\nimport cv2\nimport pyaudio\nimport wave\nimport subprocess\nfrom bleak import BleakScanner\n\n# Example function to list USB devices\ndef list_usb_devices():\n    devices = usb.core.find(find_all=True)\n    return [usb.util.get_string(dev, dev.iProduct) for dev in devices]\n\n# Example function to list Bluetooth devices using bleak\nasync def list_bluetooth_devices():\n    devices = await BleakScanner.discover()\n    return [f\"{device.address} - {device.name}\" for device in devices]\n\n# Example function to capture an image from the webcam\ndef capture_image():\n    cap = cv2.VideoCapture(0)\n    ret, frame = cap.read()\n    if ret:\n        cv2.imwrite('capture.jpg', frame)\n    cap.release()\n    return 'capture.jpg'\n\n# Example function to record audio\ndef record_audio(duration=5, filename='recording.wav'):\n    audio = pyaudio.PyAudio()\n    stream = audio.open(format=pyaudio.paInt16, channels=1, rate=44100, input=True, frames_per_buffer=1024)\n    frames = []\n    for i in range(0, int(44100 / 1024 * duration)):\n        data = stream.read(1024)\n        frames.append(data)\n    stream.stop_stream()\n    stream.close()\n    audio.terminate()\n    waveFile = wave.open(filename, 'wb')\n    waveFile.setnchannels(1)\n    waveFile.setsampwidth(audio.get_sample_size(pyaudio.paInt16))\n    waveFile.setframerate(44100)\n    waveFile.writeframes(b''.join(frames))\n    waveFile.close()\n    return filename\n\n# Example function to execute OS commands\ndef execute_command(command):\n    result = subprocess.run(command, shell=True, capture_output=True, text=True)\n    return result.stdout\n",
+        "history": []
+    },
+    {
+        "file_name": "file_operations.py",
+        "path": "/Users/akeemsulaimon/Documents/GitHub/O.A.I.S/utils/file_operations.py",
+        "functions": [
+            "def read_file(file_path):",
+            "def write_file(file_path, content):"
+        ],
+        "classes": [],
+        "content": "import os\n\nworkspace_dir = 'virtual_workspace'\n\n# Ensure the workspace directory exists\nos.makedirs(workspace_dir, exist_ok=True)\n\ndef read_file(file_path):\n    try:\n        with open(os.path.join(workspace_dir, file_path), 'r') as file:\n            return file.read()\n    except Exception as e:\n        return str(e)\n\ndef write_file(file_path, content):\n    try:\n        with open(os.path.join(workspace_dir, file_path), 'w') as file:\n            file.write(content)\n        return \"File written successfully\"\n    except Exception as e:\n        return str(e)\n",
+        "history": []
+    },
+    {
+        "file_name": "script.js",
+        "path": "/Users/akeemsulaimon/Documents/GitHub/O.A.I.S/static/script.js",
+        "functions": [],
+        "classes": [],
+        "content": "$(document).ready(function() {\n    var socket = io.connect('http://' + document.domain + ':' + location.port);\n    var selectedModel = 'gpt-4o';  // Default model\n    var selectedProvider = 'openai';  // Default provider\n\n    // Function to update model options based on provider\n    function updateModelOptions(provider) {\n        var modelOptions = '';\n        if (provider === 'openai') {\n            modelOptions += '<option value=\"gpt-4o\">GPT-4o</option>';\n            modelOptions += '<option value=\"gpt-4o-mini\">GPT-4o-mini</option>';\n        } else if (provider === 'google') {\n            modelOptions += '<option value=\"gemini-1.5-pro\">Gemini 1.5 Pro</option>';\n            modelOptions += '<option value=\"gemini-1.5-flash\">Gemini 1.5 Flash</option>';\n        }\n        $('#model-select').html(modelOptions);\n        $('#custom-engine').hide();\n        $('#model-select').change();\n    }\n\n    // Initialize model options\n    updateModelOptions($('#provider-select').val());\n\n    // Update model options when provider changes\n    $('#provider-select').change(function() {\n        selectedProvider = $(this).val();\n        updateModelOptions(selectedProvider);\n    });\n\n    // Show or hide custom engine text box based on model selection\n    $('#model-select').change(function() {\n        if ($(this).val() === 'custom') {\n            $('#custom-engine').show();\n        } else {\n            $('#custom-engine').hide();\n        }\n    });\n\n    // Save settings\n    $('#save-settings').click(function() {\n        selectedModel = $('#model-select').val();\n        selectedProvider = $('#provider-select').val();\n        alert('Settings saved! Using provider: ' + selectedProvider + ', model: ' + selectedModel);\n    });\n\n    $('form').submit(function(event) {\n        event.preventDefault();\n        console.log('Form submitted'); // Debug statement\n\n        const message = $('#user-input').val();\n        console.log('User input:', message); // Debug statement\n\n        const fileInput = $('#file-input')[0];\n        if (fileInput.files.length > 0) {\n            const file = fileInput.files[0];\n            const formData = new FormData();\n            const customEngine = $('#custom-engine').val();\n            const config = {\n                temperature: $('#temperature').val(),\n                maxTokens: $('#max-tokens').val(),\n                topP: $('#top-p').val()\n            };\n\n            let modelToUse = selectedModel;\n            if (selectedModel === 'custom') {\n                modelToUse = customEngine;\n            }\n            formData.append('file', file);\n            $.ajax({\n                url: '/upload',\n                type: 'POST',\n                data: formData,\n                processData: false,\n                contentType: false,\n                success: function(response) {\n                    console.log('File upload response:', response); // Debug statement\n                    if (response.error) {\n                        alert(response.error);\n                    } else {\n                        socket.emit('message', JSON.stringify({ message: message, model: modelToUse, provider: selectedProvider, filename: response.filename, config: config }));\n                        $('#user-input').val('');\n                        $('#file-input').val('');\n                    }\n                }\n            });\n        } else {\n            const config = {\n                temperature: $('#temperature').val(),\n                maxTokens: $('#max-tokens').val(),\n                topP: $('#top-p').val()\n            };\n            let modelToUse = selectedModel;\n            if (selectedModel === 'custom') {\n                modelToUse = $('#custom-engine').val();\n            }\n            console.log('Sending message to server:', { message: message, model: modelToUse, provider: selectedProvider, config: config }); // Debug statement\n            socket.emit('message', JSON.stringify({ message: message, model: modelToUse, provider: selectedProvider, config: config }));\n            $('#user-input').val('');\n        }\n        return false;\n    });\n\n    socket.on('message', function(data) {\n        console.log('Received message:', data);  // Debug statement\n        if (data.error) {\n            alert(data.error);\n        } else {\n            $('#chat-history').append('<div class=\"user-message\">' + data.user + '</div>');\n            $('#chat-history').append('<div class=\"bot-response\">' + data.assistant + '</div>');\n            if (data.image_url) {\n                $('#chat-history').append('<img src=\"' + data.image_url + '\" class=\"generated-image\" alt=\"Generated Image\">');\n            }\n            $('#chat-history').scrollTop($('#chat-history')[0].scrollHeight);\n        }\n    });\n});\n",
+        "history": [
+            {
+                "commit_hash": "ed17de49f74cabc13766bfc40bff8c36ebf8269f",
+                "author": "Akeem",
+                "date": "Tue",
+                "message": "Aug 6 15:25:28 2024 -0700 lol"
+            },
+            {
+                "commit_hash": "ec1d24c7ff6949811db471fa58caa93b9508cb11",
+                "author": "Akeem",
+                "date": "Tue",
+                "message": "Aug 6 15:20:42 2024 -0700 user profiles"
+            },
+            {
+                "commit_hash": "6291a297d94b8dfd56c9b29236942de05b9a5bf4",
+                "author": "Akeem",
+                "date": "Tue",
+                "message": "Aug 6 11:27:29 2024 -0700 Update script.js to handle new features and logos"
+            },
+            {
+                "commit_hash": "784a9267efeef3b0f6824c53a5518a0107eff93b",
+                "author": "Akeem",
+                "date": "Sat",
+                "message": "Aug 3 13:24:44 2024 -0700 Mod"
+            },
+            {
+                "commit_hash": "4a6a4adfd0968ec44cc75f7147aa5d90aa89f54f",
+                "author": "Akeem",
+                "date": "Sat",
+                "message": "Aug 3 13:04:55 2024 -0700 Moved somethings around"
+            },
+            {
+                "commit_hash": "6fbbea93f6727fbfbaebfef8ab3aa14798ad29a1",
+                "author": "Akeem",
+                "date": "Sat",
+                "message": "Aug 3 12:26:03 2024 -0700 reverts"
+            },
+            {
+                "commit_hash": "41935ef873010975cd4df3da88bffb7ce63bc743",
+                "author": "Akeem",
+                "date": "Sat",
+                "message": "Aug 3 12:21:52 2024 -0700 4o"
+            },
+            {
+                "commit_hash": "4e6d23d01faf1ef4061f5f184a3399155a2b4e4b",
+                "author": "Akeem",
+                "date": "Thu",
+                "message": "Aug 1 15:06:09 2024 -0700 Quick_revert bug fix"
+            },
+            {
+                "commit_hash": "70f7aeac96696f8b8e5d944c412716c4f7bf4ef3",
+                "author": "Akeem",
+                "date": "Thu",
+                "message": "Aug 1 14:48:53 2024 -0700 Update script.js"
+            },
+            {
+                "commit_hash": "e9cb8f8fd1384bf89a4afabf050758e81e2721ff",
+                "author": "Akeem",
+                "date": "Thu",
+                "message": "Aug 1 14:44:47 2024 -0700 Update script.js"
+            },
+            {
+                "commit_hash": "f2eb276bb2e78875e2033ef5ae16d50e3cd2271c",
+                "author": "Akeem",
+                "date": "Thu",
+                "message": "Aug 1 14:06:33 2024 -0700 Update script.js"
+            },
+            {
+                "commit_hash": "9d0b14c75c0b2cd6570768cb439d338de7d32cbc",
+                "author": "Akeem",
+                "date": "Wed",
+                "message": "Jul 31 13:45:39 2024 -0700 Initial commit"
+            }
+        ]
+    },
+    {
+        "file_name": "style.css",
+        "path": "/Users/akeemsulaimon/Documents/GitHub/O.A.I.S/static/style.css",
+        "functions": [],
+        "classes": [],
+        "content": "body {\n    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;\n    display: flex;\n    justify-content: center;\n    align-items: flex-start;\n    height: 100vh;\n    margin: 0;\n    background-color: #f5f5f5;\n}\n\n#container {\n    display: flex;\n    flex-direction: column;\n    width: 80%;\n    max-width: 1200px;\n    margin-top: 20px;\n    box-shadow: 0 4px 8px rgba(0,0,0,0.1);\n    border-radius: 10px;\n    overflow: hidden;\n    background-color: #fff;\n}\n\n#header {\n    display: flex;\n    align-items: center;\n    padding: 20px;\n    background-color: #fff;\n    color: #333;\n    width: 100%;\n    box-sizing: border-box;\n    border-bottom: 1px solid #ccc; /* Optional: Add a subtle border for separation */\n}\n\n#logo {\n    height: 50px;\n    margin-right: 20px;\n}\n\n#header h1 {\n    margin: 0;\n    font-size: 1.5em;\n}\n\n#main-content {\n    display: flex;\n    flex: 1;\n}\n\n#settings-sidebar {\n    width: 25%;\n    padding: 20px;\n    border-right: 1px solid #ccc;\n    background-color: #f9f9f9;\n    position: sticky;\n    top: 0;\n    height: 100vh;\n    overflow-y: auto;\n}\n\n#settings-sidebar h2 {\n    margin-top: 0;\n    font-size: 1.2em;\n    color: #333;\n}\n\n#settings-sidebar form {\n    display: flex;\n    flex-direction: column;\n}\n\n#settings-sidebar label {\n    margin-bottom: 5px;\n    color: #555;\n}\n\n#settings-sidebar select,\n#settings-sidebar input,\n#settings-sidebar button {\n    margin-bottom: 15px;\n    padding: 10px;\n    border-radius: 5px;\n    border: 1px solid #ccc;\n    box-sizing: border-box;\n}\n\n#settings-sidebar button {\n    background-color: #007bff;\n    color: #fff;\n    cursor: pointer;\n    transition: background-color 0.3s;\n}\n\n#settings-sidebar button:hover {\n    background-color: #0056b3;\n}\n\n#chat-container {\n    display: flex;\n    flex-direction: column;\n    flex: 1;\n    padding: 20px;\n    height: calc(100vh - 60px); /* Adjust based on header height */\n}\n\n#chat-history {\n    flex: 1;\n    overflow-y: auto;\n    padding: 10px;\n    border: 1px solid #ccc;\n    border-radius: 5px;\n    background-color: #f1f1f1;\n    margin-bottom: 10px;\n}\n\n.user-message, .bot-response {\n    padding: 10px;\n    margin: 10px 0;\n    border-radius: 10px;\n    max-width: 70%;\n    clear: both;\n    font-family: 'Courier New', Courier, monospace;\n}\n\n.user-message {\n    float: right;\n    background-color: #d4edda;\n    text-align: right;\n}\n\n.bot-response {\n    float: left;\n    background-color: #d1ecf1;\n    text-align: left;\n}\n\n#user-input {\n    width: calc(100% - 22px);\n    padding: 10px;\n    border: 1px solid #ccc;\n    border-radius: 5px;\n    box-sizing: border-box;\n}\n\n#file-input {\n    margin-top: 10px;\n}\n\n.generated-image {\n    margin: 10px 0;\n    max-width: 100%;\n    border-radius: 10px;\n}\n",
+        "history": [
+            {
+                "commit_hash": "ed17de49f74cabc13766bfc40bff8c36ebf8269f",
+                "author": "Akeem",
+                "date": "Tue",
+                "message": "Aug 6 15:25:28 2024 -0700 lol"
+            },
+            {
+                "commit_hash": "83bfdfbbacb8569276fb9b4d93bdf4687b158738",
+                "author": "Akeem",
+                "date": "Tue",
+                "message": "Aug 6 11:27:55 2024 -0700 Update style.css"
+            },
+            {
+                "commit_hash": "6fbbea93f6727fbfbaebfef8ab3aa14798ad29a1",
+                "author": "Akeem",
+                "date": "Sat",
+                "message": "Aug 3 12:26:03 2024 -0700 reverts"
+            },
+            {
+                "commit_hash": "41935ef873010975cd4df3da88bffb7ce63bc743",
+                "author": "Akeem",
+                "date": "Sat",
+                "message": "Aug 3 12:21:52 2024 -0700 4o"
+            },
+            {
+                "commit_hash": "9d0b14c75c0b2cd6570768cb439d338de7d32cbc",
+                "author": "Akeem",
+                "date": "Wed",
+                "message": "Jul 31 13:45:39 2024 -0700 Initial commit"
+            }
+        ]
+    },
+    {
+        "file_name": "index.html",
+        "path": "/Users/akeemsulaimon/Documents/GitHub/O.A.I.S/templates/index.html",
+        "functions": [],
+        "classes": [],
+        "content": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>O.A.I.S Chat Room</title>\n    <link rel=\"stylesheet\" href=\"/static/style.css\">\n</head>\n<body>\n    <div id=\"container\">\n        <div id=\"header\">\n            <img src=\"/static/images/logo3.png\" alt=\"O.A.I.S Logo\" id=\"logo\">\n            <h1>O.A.I.S</h1>\n        </div>\n        <div id=\"main-content\">\n            <div id=\"settings-sidebar\">\n                <h2>Settings</h2>\n                <form id=\"settings-form\">\n                    <label for=\"provider-select\">Choose Provider:</label>\n                    <select id=\"provider-select\">\n                        <option value=\"openai\">OpenAI</option>\n                        <option value=\"google\">Google</option>\n                    </select>\n                    <label for=\"model-select\">Choose Model:</label>\n                    <select id=\"model-select\">\n                        <option value=\"gpt-4o\">GPT-4o</option>\n                        <option value=\"gpt-4o-mini\">GPT-4o-mini</option>\n                        <option value=\"gemini-1.5-pro\">Gemini 1.5 Pro</option>\n                        <option value=\"gemini-1.5-flash\">Gemini 1.5 Flash</option>\n                    </select>\n                    <label for=\"custom-engine\" style=\"display:none;\">Custom Engine Name:</label>\n                    <input type=\"text\" id=\"custom-engine\" placeholder=\"Enter custom engine name\" style=\"display:none;\">\n                    <label for=\"temperature\">Temperature:</label>\n                    <input type=\"number\" id=\"temperature\" value=\"0.9\" step=\"0.1\" min=\"0\" max=\"1\">\n                    <label for=\"max-tokens\">Max Tokens:</label>\n                    <input type=\"number\" id=\"max-tokens\" value=\"4000\" step=\"100\" min=\"1\">\n                    <label for=\"top-p\">Top P:</label>\n                    <input type=\"number\" id=\"top-p\" value=\"1.0\" step=\"0.1\" min=\"0\" max=\"1\">\n                    <button type=\"button\" id=\"save-settings\">Save</button>\n                </form>\n            </div>\n            <div id=\"chat-container\">\n                <div id=\"chat-history\"></div>\n                <form id=\"chat-form\">\n                    <input type=\"text\" id=\"user-input\" placeholder=\"Type your message here...\" autocomplete=\"off\" required>\n                    <input type=\"file\" id=\"file-input\">\n                    <button type=\"submit\">Send</button>\n                </form>\n            </div>\n        </div>\n    </div>\n    \n    <script src=\"https://code.jquery.com/jquery-3.6.0.min.js\"></script>\n    <script src=\"https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/marked/marked.min.js\"></script>\n    <script src=\"/static/script.js\"></script>\n</body>\n</html>\n",
+        "history": [
+            {
+                "commit_hash": "ed17de49f74cabc13766bfc40bff8c36ebf8269f",
+                "author": "Akeem",
+                "date": "Tue",
+                "message": "Aug 6 15:25:28 2024 -0700 lol"
+            },
+            {
+                "commit_hash": "ec1d24c7ff6949811db471fa58caa93b9508cb11",
+                "author": "Akeem",
+                "date": "Tue",
+                "message": "Aug 6 15:20:42 2024 -0700 user profiles"
+            },
+            {
+                "commit_hash": "ba39a42bc8956ecdbe49963558e6d6efac754471",
+                "author": "Akeem",
+                "date": "Tue",
+                "message": "Aug 6 11:28:26 2024 -0700 Update index.html"
+            },
+            {
+                "commit_hash": "784a9267efeef3b0f6824c53a5518a0107eff93b",
+                "author": "Akeem",
+                "date": "Sat",
+                "message": "Aug 3 13:24:44 2024 -0700 Mod"
+            },
+            {
+                "commit_hash": "4a6a4adfd0968ec44cc75f7147aa5d90aa89f54f",
+                "author": "Akeem",
+                "date": "Sat",
+                "message": "Aug 3 13:04:55 2024 -0700 Moved somethings around"
+            },
+            {
+                "commit_hash": "41935ef873010975cd4df3da88bffb7ce63bc743",
+                "author": "Akeem",
+                "date": "Sat",
+                "message": "Aug 3 12:21:52 2024 -0700 4o"
+            },
+            {
+                "commit_hash": "4e6d23d01faf1ef4061f5f184a3399155a2b4e4b",
+                "author": "Akeem",
+                "date": "Thu",
+                "message": "Aug 1 15:06:09 2024 -0700 Quick_revert bug fix"
+            },
+            {
+                "commit_hash": "41a6a3a44c0c4e51b682e1778a6fc5b2315c371e",
+                "author": "Akeem",
+                "date": "Thu",
+                "message": "Aug 1 14:45:10 2024 -0700 Update index.html"
+            },
+            {
+                "commit_hash": "9d0b14c75c0b2cd6570768cb439d338de7d32cbc",
+                "author": "Akeem",
+                "date": "Wed",
+                "message": "Jul 31 13:45:39 2024 -0700 Initial commit"
+            }
+        ]
+    }
+]

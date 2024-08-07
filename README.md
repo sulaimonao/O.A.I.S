@@ -1,59 +1,66 @@
 # O.A.I.S
 
-![O.A.I.S Logo](static/images/logo1.png)
+![O.A.I.S Logo](static/images/logo.png)
 
-## Project Description
+## Overview
 
-O.A.I.S is a powerful and flexible system designed to integrate language models with various tools and technologies. The system allows for dynamic code generation, file operations, hardware interactions, and much more.
+O.A.I.S is an AI-powered system designed for dynamic interactions and integrations. The project leverages advanced language models and various tools to provide an extensible platform for development.
 
 ## Features
 
 - **Dynamic Code Generation:** Generate and execute code on the fly using OpenAI models.
-- **File Operations:** Read, write, and manage files within the system.
+- **Database Management**
+- **User Profiles**
+- **File Operations**
 - **Hardware Interaction:** List USB devices, discover Bluetooth devices, capture images from the webcam, and record audio.
-- **User Profile Management:** Store and retrieve user profiles for personalized interactions.
 - **Extensible and Modular:** Easily extend the system with additional functionality and integrations.
 
-## Installation
+## Setup
 
 ### Prerequisites
 
 - Python 3.8 or higher
-- [pip](https://pip.pypa.io/en/stable/installation/)
+- pip
 - [Homebrew](https://brew.sh/) (for macOS)
 
-### Step-by-Step Guide
+### Installation
 
-1. **Clone the repository:**
+1. Clone the repository:
 
     ```sh
     git clone https://github.com/sulaimonao/O.A.I.S.git
     cd O.A.I.S
     ```
 
-2. **Set up a virtual environment:**
+2. Create a virtual environment and activate it:
 
     ```sh
-    python3 -m venv env
-    source env/bin/activate
+    python -m venv venv
+    source venv/bin/activate
     ```
 
-3. **Install the dependencies:**
+3. Install dependencies:
 
     ```sh
     pip install -r requirements.txt
     ```
 
-4. **Install additional system dependencies (macOS):**
+4. Initialize the database:
+
+    ```sh
+    python -m utils.database
+    ```
+
+5. Install additional system dependencies (macOS):
 
     ```sh
     brew install portaudio
     ```
 
-5. **Run the application:**
+6. Run the application:
 
     ```sh
-    python main.py
+    python app.py
     ```
 
 ## Usage
@@ -63,7 +70,7 @@ O.A.I.S is a powerful and flexible system designed to integrate language models 
 1. Start the application by running:
 
     ```sh
-    python main.py
+    python app.py
     ```
 
 2. Open your web browser and navigate to `http://localhost:5000`.
@@ -86,7 +93,7 @@ O.A.I.S is a powerful and flexible system designed to integrate language models 
 =======
 
 2. **Adding New Functionality:**
-   Add new functions in the `tools/` directory and integrate them into `main.py`.
+   Add new functions in the `utils/` directory and integrate them into `app.py`.
 
 ## Contributing
 
@@ -94,11 +101,11 @@ Contributions are welcome! Please follow these steps to contribute:
 
 ## License
 
-This project has no LICENSE
+[MIT License](LICENSE)
 
 ## Acknowledgments
 
-- [OpenAI](https://www.openai.com/) for their powerful language models.
-- [Gemini](https://www.gemini.google.com/) for their powerful language models.
+- [OpenAI](https://www.openai.com/)
+- [Gemini](https://www.gemini.google.com/)
 - [Homebrew](https://brew.sh/) for managing macOS packages.
 - [Flask](https://flask.palletsprojects.com/) for providing a lightweight web framework.
