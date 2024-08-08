@@ -16,7 +16,7 @@ class Config:
     SYSTEM_PROMPT = "You are a helpful assistant."
     BASEDIR = os.path.abspath(os.path.dirname(__file__))
     DATABASE = os.path.join(BASEDIR, 'main_database.db')
-    SQLALCHEMY_DATABASE_URI = os.getenv("SQLALCHEMY_DATABASE_URI")
+    SQLALCHEMY_DATABASE_URI = os.getenv("SQLALCHEMY_DATABASE_URI", f'sqlite:///{DATABASE}')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SECRET_KEY = os.getenv("SECRET_KEY")  # Add the secret key
 

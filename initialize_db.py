@@ -3,7 +3,7 @@ import logging
 
 def initialize_database():
     try:
-        connection = sqlite3.connect('your_database.db')
+        connection = sqlite3.connect('main_database.db')
         cursor = connection.cursor()
         with open('schema.sql', 'r') as file:
             schema = file.read()

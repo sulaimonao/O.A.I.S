@@ -10,7 +10,7 @@ class Message(db.Model):
     timestamp = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
 
 class UserProfile(db.Model):
-    __tablename__ = 'user_profiles'  # Ensure this matches the table name in the schema
+    __tablename__ = 'user_profiles'
     session_id = db.Column(db.String, primary_key=True)
     name = db.Column(db.String, unique=True, nullable=False)
     database_name = db.Column(db.String, unique=True, nullable=False)
