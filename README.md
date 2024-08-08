@@ -101,6 +101,7 @@ O.A.I.S is an AI-powered system designed for dynamic interactions and integratio
 1. **Modifying Configurations:**
    Edit the `.env` file to update API keys and other configurations.
 
+
 2. **Adding New Functionality:**
    Add new functions in the `utils/` directory and integrate them into `app.py`.
 
