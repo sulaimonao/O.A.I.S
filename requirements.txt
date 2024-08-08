@@ -11,7 +11,7 @@ opencv-python
 pyaudio
 Flask==2.0.2
 python-dotenv==0.19.2
-requests==2.26.0
+requests==2.32.2
 google-api-python-client==2.26.1
 sqlalchemy==1.4.27
 psycopg2-binary==2.9.2
