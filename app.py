@@ -1,7 +1,9 @@
+import os
 from flask import Flask, session
 from config import Config
 from app_extensions import db, migrate, socketio
 import uuid
+from utils.database import check_and_create_tables
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -21,7 +23,11 @@ def create_app():
             profile_db = session['user_profile']['database_name']
             app.config['SQLALCHEMY_BINDS'] = {'profile': f'sqlite:///{profile_db}'}
             db.engine.dispose()
-            db.create_all(bind='profile')
+            db.create_all()  # Remove bind='profile'
+
+    # Ensure database tables are created
+    with app.app_context():
+        check_and_create_tables()
 
     return app
 
@@ -36,4 +42,8 @@ def register_blueprints(app):
 
 if __name__ == "__main__":
     app = create_app()
+    if not os.path.exists('uploads'):
+        os.makedirs('uploads')
+    if not os.path.exists('virtual_workspace'):
+        os.makedirs('virtual_workspace')
     socketio.run(app, debug=True)

@@ -78,16 +78,18 @@ def query_db(query, args=(), one=False, database_path=DATABASE):
         logging.error(f"Database query failed in {database_path}: {e}")
         return None
 
-
-def add_message(session_id, user_id, role, content, model, database_path=DATABASE):
+def add_message(session_id, user_id, role, content, model_name):
     try:
-        query_db(
-            'INSERT INTO messages (session_id, user_id, role, content, model) VALUES (?, ?, ?, ?, ?)',
-            [session_id, user_id, role, content, model],
-            database_path=database_path
-        )
-    except sqlite3.DatabaseError as e:
-        logging.error(f"Failed to add message in {database_path}: {e}")
+        conn = sqlite3.connect(Config.DATABASE)
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO messages (session_id, user_id, role, content, model)
+            VALUES (?, ?, ?, ?, ?)
+        """, (session_id, user_id, role, content, model_name))
+        conn.commit()
+        conn.close()
+    except sqlite3.Error as e:
+        logging.error(f"Database query failed in {Config.DATABASE}: {e}")
 
 def add_long_term_memory(session_id, content, database_path=DATABASE):
     try:

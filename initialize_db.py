@@ -1,3 +1,4 @@
+# initialize_db.py
 import sqlite3
 import logging
 
