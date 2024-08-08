@@ -74,7 +74,7 @@ def query_db(query, args=(), one=False, database_path=DATABASE):
             rv = cur.fetchall()
             db.commit()
             return (rv[0] if rv else None) if one else rv
-    except Exception as e:
+    except sqlite3.DatabaseError as e:
         logging.error(f"Database query failed in {database_path}: {e}")
         return None
 
@@ -85,7 +85,7 @@ def add_message(session_id, user_id, role, content, model, database_path=DATABAS
             [session_id, user_id, role, content, model],
             database_path=database_path
         )
-    except Exception as e:
+    except sqlite3.DatabaseError as e:
         logging.error(f"Failed to add message in {database_path}: {e}")
 
 def add_long_term_memory(session_id, content, database_path=DATABASE):
@@ -95,7 +95,7 @@ def add_long_term_memory(session_id, content, database_path=DATABASE):
             [session_id, content],
             database_path=database_path
         )
-    except Exception as e:
+    except sqlite3.DatabaseError as e:
         logging.error(f"Failed to add long-term memory in {database_path}: {e}")
 
 def add_chatroom_memory(session_id, content, database_path=DATABASE):
@@ -105,7 +105,7 @@ def add_chatroom_memory(session_id, content, database_path=DATABASE):
             [session_id, content],
             database_path=database_path
         )
-    except Exception as e:
+    except sqlite3.DatabaseError as e:
         logging.error(f"Failed to add chatroom memory in {database_path}: {e}")
 
 def get_conversation_history(session_id, database_path=DATABASE):
@@ -115,7 +115,7 @@ def get_conversation_history(session_id, database_path=DATABASE):
             [session_id],
             database_path=database_path
         )
-    except Exception as e:
+    except sqlite3.DatabaseError as e:
         logging.error(f"Failed to get conversation history in {database_path}: {e}")
         return []
 
@@ -127,7 +127,7 @@ def get_user_profile(session_id, database_path=DATABASE):
             one=True,
             database_path=database_path
         )
-    except Exception as e:
+    except sqlite3.DatabaseError as e:
         logging.error(f"Failed to get user profile in {database_path}: {e}")
         return None
 
@@ -138,7 +138,7 @@ def set_user_profile(session_id, name, database_path=DATABASE):
             [session_id, name],
             database_path=database_path
         )
-    except Exception as e:
+    except sqlite3.DatabaseError as e:
         logging.error(f"Failed to set user profile in {database_path}: {e}")
 
 def get_existing_profiles():
@@ -148,3 +148,14 @@ def get_existing_profiles():
             profile_name = file.replace("_database.db", "")
             profiles.append(profile_name)
     return profiles
+
+def perform_transaction(queries, args, database_path=DATABASE):
+    try:
+        with closing(sqlite3.connect(database_path)) as db:
+            cursor = db.cursor()
+            for query, arg in zip(queries, args):
+                cursor.execute(query, arg)
+            db.commit()
+    except sqlite3.DatabaseError as e:
+        db.rollback()
+        logging.error(f"Transaction failed in {database_path}: {e}")

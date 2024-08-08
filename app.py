@@ -1,12 +1,17 @@
 import logging
-logging.basicConfig(level=logging.DEBUG)
-
+import os
 from flask import Flask, session
 from config import Config
 from app_extensions import db, migrate, socketio
-import os
 import uuid
 from utils.database import init_db, check_and_create_tables
+
+# Set up logging based on the environment
+ENVIRONMENT = os.getenv('ENVIRONMENT', 'development')
+if ENVIRONMENT == 'development':
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+elif ENVIRONMENT == 'production':
+    logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def create_app():
     app = Flask(__name__)
