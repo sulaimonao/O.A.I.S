@@ -9,10 +9,10 @@ O.A.I.S is an AI-powered system designed for dynamic interactions and integratio
 ## Features
 
 - **Dynamic Code Generation:** Generate and execute code on the fly using OpenAI models.
-- **Database Management:**Manage user profiles, long-term memory, and chatroom memory with robust database systems.
+- **Database Management:** Manage user profiles, long-term memory, and chatroom memory with robust database systems.
 - **Multi-Model Support:** Integrate and switch between OpenAI and Google Gemini for varied capabilities.
-- **User Profiles:**Customize and manage different user profiles, including their unique memory databases.
-- **File Operations:**Perform operations such as writing to files, capturing images, and recording audio.
+- **User Profiles:** Customize and manage different user profiles, including their unique memory databases.
+- **File Operations:** Perform operations such as writing to files, capturing images, and recording audio.
 - **Hardware Interaction:** List USB devices, discover Bluetooth devices, capture images from the webcam, and record audio.
 - **Extensible and Modular:** Easily extend the system with additional functionality and integrations.
 
@@ -100,7 +100,6 @@ O.A.I.S is an AI-powered system designed for dynamic interactions and integratio
 
 1. **Modifying Configurations:**
    Edit the `.env` file to update API keys and other configurations.
-
 
 2. **Adding New Functionality:**
    Add new functions in the `utils/` directory and integrate them into `app.py`.
