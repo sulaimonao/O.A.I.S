@@ -60,7 +60,9 @@ def manage_profiles():
 def select_profile():
     data = request.get_json()
     profile_name = data.get('name')
+    logging.debug(f"Selecting profile: {profile_name}")
     profile = UserProfile.query.filter_by(name=profile_name).first()
+    logging.debug(f"Profile found: {profile}")
     if profile:
         session['user_profile'] = {'name': profile_name, 'database_name': profile.database_name}
         return jsonify({'selected': profile_name}), 200
