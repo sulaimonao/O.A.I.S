@@ -53,13 +53,19 @@ O.A.I.S is an AI-powered system designed for dynamic interactions and integratio
     python -m utils.database
     ```
 
-5. Install additional system dependencies (macOS):
+5. Generate 'secret-key':
+
+    ```sh
+    python random_secret_key.py
+    ```
+
+6. Install additional system dependencies (macOS):
 
     ```sh
     brew install portaudio
     ```
 
-6. Run the application:
+7. Run the application:
 
     ```sh
     python app.py
