@@ -5,6 +5,7 @@ from flask_socketio import emit
 from app_extensions import socketio, db
 from models import UserProfile
 from utils.database import add_message, add_long_term_memory, add_chatroom_memory, get_conversation_history, get_user_profile, set_user_profile, create_db, get_existing_profiles, check_and_create_tables
+from utils.file_operations import write_file
 from utils.intent_parser import parse_intent, handle_write_to_file, handle_execute_code
 from utils.code_execution import execute_code
 from config import Config
@@ -12,6 +13,8 @@ from openai import OpenAI
 import google.generativeai as genai
 import uuid
 import os
+
+from utils.llm import generate_code_via_llm
 
 # Initialize OpenAI client
 openai_client = OpenAI(api_key=Config.OPENAI_API_KEY)
