@@ -1,5 +1,5 @@
-import os
 from dotenv import load_dotenv
+import os
 import logging
 
 # Load the environment variables from the .env file
@@ -18,7 +18,7 @@ class Config:
     DATABASE = os.path.join(BASEDIR, 'main_database.db')
     SQLALCHEMY_DATABASE_URI = os.getenv("SQLALCHEMY_DATABASE_URI", f'sqlite:///{DATABASE}')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SECRET_KEY = os.getenv("SECRET_KEY")  # Add the secret key
+    SECRET_KEY = os.getenv("SECRET_KEY")
 
     # Environment-specific configurations
     ENVIRONMENT = os.getenv('ENVIRONMENT', 'development')

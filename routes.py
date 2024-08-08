@@ -41,7 +41,6 @@ def manage_profiles():
     elif request.method == 'POST':
         if not memory_setting['enabled']:
             return jsonify({'error': 'Memory must be enabled to create a profile.'}), 400
-
         data = request.get_json()
         profile_name = data.get('name')
         database_name = f"{profile_name}_database.db"
@@ -49,12 +48,9 @@ def manage_profiles():
             new_profile = UserProfile(session_id=str(uuid.uuid4()), name=profile_name, database_name=database_name)
             db.session.add(new_profile)
             db.session.commit()
-
-            # Create the new database file if it doesn't exist
             if not os.path.exists(database_name):
                 create_db(database_name)
                 check_and_create_tables(database_name)
-
             return jsonify({'name': profile_name}), 201
         else:
             return jsonify({'error': 'Profile already exists or invalid name'}), 400

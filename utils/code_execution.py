@@ -18,12 +18,8 @@ def execute_code(code):
     with virtualenv(env_name) as env_path:
         activate_script = os.path.join(env_path, 'bin', 'activate')
         exec_script = os.path.join(env_path, 'exec_code.py')
-
-        # Write the code to a Python script
         with open(exec_script, 'w') as f:
             f.write(code)
-
-        # Run the script in the virtual environment
         try:
             result = subprocess.run(
                 f"source {activate_script} && pip install matplotlib numpy && python {exec_script}",
@@ -37,3 +33,4 @@ def execute_code(code):
         except subprocess.CalledProcessError as e:
             logging.error(f"Error during code execution: {e.stderr}")
             return e.stderr
+

@@ -78,6 +78,7 @@ def query_db(query, args=(), one=False, database_path=DATABASE):
         logging.error(f"Database query failed in {database_path}: {e}")
         return None
 
+
 def add_message(session_id, user_id, role, content, model, database_path=DATABASE):
     try:
         query_db(
