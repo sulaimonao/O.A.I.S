@@ -4,7 +4,7 @@ from flask import Blueprint, session, render_template, request, jsonify
 from flask_socketio import emit
 from app_extensions import socketio, db
 from models import UserProfile
-from utils.database import add_message, get_conversation_history, get_user_profile, set_user_profile, create_db, check_and_create_tables, get_existing_profiles
+from utils.database import add_message, get_conversation_history, get_user_profile, set_user_profile, get_existing_profiles, add_long_term_memory, add_chatroom_memory
 from utils.validation import validate_response
 from config import Config
 from openai import OpenAI
@@ -50,9 +50,6 @@ def manage_profiles():
             new_profile = UserProfile(session_id=str(uuid.uuid4()), name=profile_name, database_name=database_name)
             db.session.add(new_profile)
             db.session.commit()
-            if not os.path.exists(database_name):
-                create_db(database_name)
-                check_and_create_tables(database_name)
             return jsonify({'name': profile_name}), 201
         else:
             return jsonify({'error': 'Profile already exists or invalid name'}), 400
@@ -61,12 +58,15 @@ def manage_profiles():
 def select_profile():
     data = request.get_json()
     profile_name = data.get('name')
+    logging.debug(f"Selecting profile: {profile_name}")
     profile = UserProfile.query.filter_by(name=profile_name).first()
+    logging.debug(f"Profile found: {profile}")
     if profile:
         session['user_profile'] = {'name': profile_name, 'database_name': profile.database_name}
         return jsonify({'selected': profile_name}), 200
     else:
         return jsonify({'error': 'Profile not found'}), 404
+
 
 @socketio.on('message')
 def handle_message(data):
