@@ -1,164 +1,91 @@
-import sqlite3
-from contextlib import closing
-import os
+from app_extensions import db
+from models import UserProfile, Message, LongTermMemory, ChatroomMemory
 import logging
-from config import Config
 
 logging.basicConfig(level=logging.INFO)
-DATABASE = Config.DATABASE
 
 def init_db():
     logging.info("Initializing database...")
     try:
-        if os.path.exists(DATABASE):
-            logging.info("Using existing database.")
-        else:
-            create_db(DATABASE)
-            logging.info("Database created successfully.")
+        db.create_all()
+        logging.info("Database initialized successfully.")
     except Exception as e:
         logging.error(f"Failed to initialize database: {e}")
 
-def create_db(database_path):
+def query_db(model, filters=None, one=False):
     try:
-        logging.info(f"Creating database at {database_path}...")
-        with closing(sqlite3.connect(database_path)) as db:
-            with open('schema.sql', mode='r') as f:
-                db.cursor().executescript(f.read())
-            db.commit()
-            logging.info("Database schema applied successfully.")
+        query = model.query
+        if filters:
+            query = query.filter_by(**filters)
+        result = query.first() if one else query.all()
+        return result
     except Exception as e:
-        logging.error(f"Failed to create database: {e}")
-
-def check_and_create_tables(database_path=DATABASE):
-    try:
-        logging.info(f"Checking and creating tables in {database_path} if they do not exist...")
-        with closing(sqlite3.connect(database_path)) as db:
-            schema = """
-            CREATE TABLE IF NOT EXISTS messages (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                session_id TEXT NOT NULL,
-                user_id TEXT NOT NULL,
-                role TEXT NOT NULL,
-                content TEXT NOT NULL,
-                model TEXT NOT NULL,
-                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-            );
-            CREATE TABLE IF NOT EXISTS user_profiles (
-                session_id TEXT PRIMARY KEY,
-                name TEXT,
-                database_name TEXT UNIQUE NOT NULL
-            );
-            CREATE TABLE IF NOT EXISTS long_term_memory (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                session_id TEXT NOT NULL,
-                content TEXT NOT NULL,
-                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-            );
-            CREATE TABLE IF NOT EXISTS chatroom_memory (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                session_id TEXT NOT NULL,
-                content TEXT NOT NULL,
-                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-            );
-            """
-            db.cursor().executescript(schema)
-            db.commit()
-            logging.info(f"Tables checked and created in {database_path} if necessary.")
-    except Exception as e:
-        logging.error(f"Failed to check and create tables in {database_path}: {e}")
-
-def query_db(query, args=(), one=False, database_path=DATABASE):
-    try:
-        with closing(sqlite3.connect(database_path)) as db:
-            cur = db.execute(query, args)
-            rv = cur.fetchall()
-            db.commit()
-            return (rv[0] if rv else None) if one else rv
-    except sqlite3.DatabaseError as e:
-        logging.error(f"Database query failed in {database_path}: {e}")
+        logging.error(f"Database query failed: {e}")
         return None
 
 def add_message(session_id, user_id, role, content, model_name):
     try:
-        conn = sqlite3.connect(Config.DATABASE)
-        cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO messages (session_id, user_id, role, content, model)
-            VALUES (?, ?, ?, ?, ?)
-        """, (session_id, user_id, role, content, model_name))
-        conn.commit()
-        conn.close()
-    except sqlite3.Error as e:
-        logging.error(f"Database query failed in {Config.DATABASE}: {e}")
+        message = Message(session_id=session_id, user_id=user_id, role=role, content=content, model=model_name)
+        db.session.add(message)
+        db.session.commit()
+    except Exception as e:
+        logging.error(f"Failed to add message: {e}")
+        db.session.rollback()
 
-def add_long_term_memory(session_id, content, database_path=DATABASE):
+def add_long_term_memory(session_id, content):
     try:
-        query_db(
-            'INSERT INTO long_term_memory (session_id, content) VALUES (?, ?)',
-            [session_id, content],
-            database_path=database_path
-        )
-    except sqlite3.DatabaseError as e:
-        logging.error(f"Failed to add long-term memory in {database_path}: {e}")
+        memory = LongTermMemory(session_id=session_id, content=content)
+        db.session.add(memory)
+        db.session.commit()
+    except Exception as e:
+        logging.error(f"Failed to add long-term memory: {e}")
+        db.session.rollback()
 
-def add_chatroom_memory(session_id, content, database_path=DATABASE):
+def add_chatroom_memory(session_id, content):
     try:
-        query_db(
-            'INSERT INTO chatroom_memory (session_id, content) VALUES (?, ?)',
-            [session_id, content],
-            database_path=database_path
-        )
-    except sqlite3.DatabaseError as e:
-        logging.error(f"Failed to add chatroom memory in {database_path}: {e}")
+        memory = ChatroomMemory(session_id=session_id, content=content)
+        db.session.add(memory)
+        db.session.commit()
+    except Exception as e:
+        logging.error(f"Failed to add chatroom memory: {e}")
+        db.session.rollback()
 
-def get_conversation_history(session_id, database_path=DATABASE):
+def get_conversation_history(session_id):
     try:
-        return query_db(
-            'SELECT role, content FROM messages WHERE session_id = ? ORDER BY timestamp',
-            [session_id],
-            database_path=database_path
-        )
-    except sqlite3.DatabaseError as e:
-        logging.error(f"Failed to get conversation history in {database_path}: {e}")
+        return query_db(Message, filters={'session_id': session_id})
+    except Exception as e:
+        logging.error(f"Failed to get conversation history: {e}")
         return []
 
-def get_user_profile(session_id, database_path=DATABASE):
+def get_user_profile(session_id):
     try:
-        return query_db(
-            'SELECT name FROM user_profiles WHERE session_id = ?',
-            [session_id],
-            one=True,
-            database_path=database_path
-        )
-    except sqlite3.DatabaseError as e:
-        logging.error(f"Failed to get user profile in {database_path}: {e}")
+        return query_db(UserProfile, filters={'session_id': session_id}, one=True)
+    except Exception as e:
+        logging.error(f"Failed to get user profile: {e}")
         return None
 
-def set_user_profile(session_id, name, database_path=DATABASE):
+def set_user_profile(session_id, name):
     try:
-        query_db(
-            'INSERT OR REPLACE INTO user_profiles (session_id, name) VALUES (?, ?)',
-            [session_id, name],
-            database_path=database_path
-        )
-    except sqlite3.DatabaseError as e:
-        logging.error(f"Failed to set user profile in {database_path}: {e}")
+        profile = UserProfile(session_id=session_id, name=name, database_name=f'{name}_database.db')
+        db.session.add(profile)
+        db.session.commit()
+    except Exception as e:
+        logging.error(f"Failed to set user profile: {e}")
+        db.session.rollback()
 
 def get_existing_profiles():
-    profiles = []
-    for file in os.listdir(Config.BASEDIR):
-        if file.endswith("_database.db"):
-            profile_name = file.replace("_database.db", "")
-            profiles.append(profile_name)
-    return profiles
-
-def perform_transaction(queries, args, database_path=DATABASE):
     try:
-        with closing(sqlite3.connect(database_path)) as db:
-            cursor = db.cursor()
-            for query, arg in zip(queries, args):
-                cursor.execute(query, arg)
-            db.commit()
-    except sqlite3.DatabaseError as e:
-        db.rollback()
-        logging.error(f"Transaction failed in {database_path}: {e}")
+        profiles = UserProfile.query.all()
+        return [profile.name for profile in profiles]
+    except Exception as e:
+        logging.error(f"Failed to get existing profiles: {e}")
+        return []
+
+def perform_transaction(queries):
+    try:
+        for query in queries:
+            db.session.execute(query)
+        db.session.commit()
+    except Exception as e:
+        logging.error(f"Transaction failed: {e}")
+        db.session.rollback()

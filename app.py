@@ -3,10 +3,8 @@ from flask import Flask, session
 from config import Config
 from app_extensions import db, migrate, socketio
 import uuid
-from utils.database import check_and_create_tables
-
-app = Flask(__name__)
-app.config.from_object(Config)
+from models import UserProfile, Message, LongTermMemory, ChatroomMemory  # Import models
+from utils.database import init_db
 
 def create_app():
     app = Flask(__name__)
@@ -23,11 +21,10 @@ def create_app():
             profile_db = session['user_profile']['database_name']
             app.config['SQLALCHEMY_BINDS'] = {'profile': f'sqlite:///{profile_db}'}
             db.engine.dispose()
-            db.create_all()  # Remove bind='profile'
+            db.create_all()
 
-    # Ensure database tables are created
     with app.app_context():
-        check_and_create_tables()
+        db.create_all()  # Create tables if they don't exist
 
     return app
 
