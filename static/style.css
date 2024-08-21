@@ -170,3 +170,27 @@ body {
     display: block;
     margin-bottom: 10px;
 }
+
+.execution-result {
+    background-color: #ffeb3b;
+    padding: 10px;
+    border-radius: 5px;
+    margin-top: 10px;
+    font-family: 'Courier New', Courier, monospace;
+    color: #333;
+}
+
+.generated-file a {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #4caf50;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+}
+
+.generated-file a:hover {
+    background-color: #388e3c;
+}

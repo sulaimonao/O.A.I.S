@@ -110,8 +110,9 @@ $(document).ready(function() {
         } else {
             $('#chat-history').append('<div class="user-message">' + data.user + '</div>');
             $('#chat-history').append('<div class="bot-response">' + data.assistant + '</div>');
-            if (data.image_url) {
-                $('#chat-history').append('<img src="' + data.image_url + '" class="generated-image" alt="Generated Image">');
+            if (data.filepath) {
+                $('#chat-history').append('<div class="execution-result"><strong>Execution Result:</strong><pre>' + data.execution_result + '</pre></div>');
+                $('#chat-history').append('<div class="generated-file"><strong>Generated File:</strong> <a href="' + data.filepath + '" download>Download Script</a></div>');
             }
             $('#chat-history').scrollTop($('#chat-history')[0].scrollHeight);
         }
