@@ -1,10 +1,14 @@
 import os
+import logging
 from flask import Flask, session
 from config import Config
 from app_extensions import db, migrate, socketio
 import uuid
 from models import UserProfile, Message, LongTermMemory, ChatroomMemory  # Import models
 from utils.database import init_db
+
+logging.basicConfig(level=Config.LOG_LEVEL, format='%(asctime)s - %(levelname)s - %(message)s')
+
 
 def create_app():
     app = Flask(__name__)
@@ -43,4 +47,4 @@ if __name__ == "__main__":
         os.makedirs('uploads')
     if not os.path.exists('virtual_workspace'):
         os.makedirs('virtual_workspace')
-    socketio.run(app, debug=True)
+    socketio.run(app, debug=False)

@@ -19,13 +19,9 @@ class Config:
     SQLALCHEMY_DATABASE_URI = os.getenv("SQLALCHEMY_DATABASE_URI", f'sqlite:///{DATABASE}')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SECRET_KEY = os.getenv("SECRET_KEY")
+    LOG_LEVEL = logging.DEBUG  # or any other desired logging level
 
-    # Environment-specific configurations
-    ENVIRONMENT = os.getenv('ENVIRONMENT', 'development')
-    if ENVIRONMENT == 'development':
-        LOG_LEVEL = logging.DEBUG
-    elif ENVIRONMENT == 'production':
-        LOG_LEVEL = logging.ERROR
+  
 
 # Set logging configuration
 logging.basicConfig(level=Config.LOG_LEVEL, format='%(asctime)s - %(levelname)s - %(message)s')

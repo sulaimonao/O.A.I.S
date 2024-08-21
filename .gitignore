@@ -7,3 +7,7 @@
 *.json
 .env
 .env
+*.pyc
+scan_repo.py
+.env
+/virtual_workspace

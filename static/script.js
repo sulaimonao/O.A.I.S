@@ -42,8 +42,8 @@ $(document).ready(function() {
         event.preventDefault();
         const message = $('#user-input').val();
         const fileInput = $('#file-input')[0];
+
         if (fileInput.files.length > 0) {
-            const file = fileInput.files[0];
             const formData = new FormData();
             const customEngine = $('#custom-engine').val();
             const config = {
@@ -56,7 +56,11 @@ $(document).ready(function() {
             if (selectedModel === 'custom') {
                 modelToUse = customEngine;
             }
-            formData.append('file', file);
+
+            for (const file of fileInput.files) {
+                formData.append('files[]', file);  // Note the 'files[]' to allow multiple files
+            }
+
             $.ajax({
                 url: '/upload',
                 type: 'POST',
@@ -67,7 +71,13 @@ $(document).ready(function() {
                     if (response.error) {
                         alert(response.error);
                     } else {
-                        socket.emit('message', JSON.stringify({ message: message, model: modelToUse, provider: selectedProvider, filename: response.filename, config: config }));
+                        socket.emit('message', JSON.stringify({
+                            message: message,
+                            model: modelToUse,
+                            provider: selectedProvider,
+                            filenames: response.filenames,  // Updated to handle multiple filenames
+                            config: config
+                        }));
                         $('#user-input').val('');
                         $('#file-input').val('');
                     }
@@ -83,7 +93,12 @@ $(document).ready(function() {
             if (selectedModel === 'custom') {
                 modelToUse = $('#custom-engine').val();
             }
-            socket.emit('message', JSON.stringify({ message: message, model: modelToUse, provider: selectedProvider, config: config }));
+            socket.emit('message', JSON.stringify({
+                message: message,
+                model: modelToUse,
+                provider: selectedProvider,
+                config: config
+            }));
             $('#user-input').val('');
         }
         return false;
