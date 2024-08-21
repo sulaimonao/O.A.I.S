@@ -12,3 +12,4 @@ scan_repo.py
 .env
 /virtual_workspace
 .env
+.DS_Store
