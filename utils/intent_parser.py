@@ -105,6 +105,8 @@ def handle_execute_code(message, generated_response):
         with open(file_path, "w") as f:
             f.write(code)
         
+        logging.debug(f"Saved code to {file_path}")
+
         try:
             # Execute the Python code and capture the output
             result = subprocess.check_output(["python3", file_path], stderr=subprocess.STDOUT)
@@ -113,9 +115,10 @@ def handle_execute_code(message, generated_response):
             return f"Code executed successfully:\n{result}"
         except subprocess.CalledProcessError as e:
             error_output = e.output.decode('utf-8')
-            logging.error(f"Error executing code: {error_output}")
+            logging.error(f"Error executing code at {file_path}: {error_output}")
             return f"Error executing code:\n{error_output}"
     else:
+        logging.warning("No valid Python code found in the response.")
         return "Failed to find valid Python code in the response."
 
 def handle_hardware_interaction(message):
