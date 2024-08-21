@@ -13,3 +13,7 @@ scan_repo.py
 /virtual_workspace
 .env
 .DS_Store
+.env
+folder_structure_versioncontrol.py
+folder_to_database.py
+.env

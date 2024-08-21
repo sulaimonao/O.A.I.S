@@ -19,7 +19,6 @@ import os
 import uuid
 import json
 import subprocess
-import re
 
 main = Blueprint('main', __name__)
 
@@ -38,6 +37,18 @@ with open('response_schema.json', 'r') as file:
 
 # Cache for storing previously generated code and results
 resource_cache = {}
+
+WORKSPACE_DIR = "virtual_workspace"
+
+def get_workspace_path():
+    if not os.path.exists(WORKSPACE_DIR):
+        os.makedirs(WORKSPACE_DIR)
+    return WORKSPACE_DIR
+
+def generate_unique_filename(extension=".py"):
+    timestamp = time.strftime("%Y%m%d-%H%M%S")
+    unique_id = str(uuid.uuid4())
+    return f"script_{timestamp}_{unique_id}{extension}"
 
 @main.route('/')
 def index():
@@ -185,26 +196,6 @@ def communicate_with_llm(message, model, provider, config):
         logging.error(f"Error communicating with LLM: {e}")
         return f"Failed to communicate with the LLM provider: {e}"
 
-# Function to parse the intent and execute corresponding actions
-def parse_intent_and_execute(message, session_id):
-    # Parse the intent from the message
-    intent = parse_intent(message)
-    
-    if intent == "write_to_file":
-        content = "This is an example content."
-        return handle_write_to_file(message, content)
-    elif intent == "read_from_file":
-        return handle_read_from_file(message)
-    elif intent == "execute_code":
-        generated_code = "print('Hello, World!')"  # Example code, replace with generated code
-        return handle_execute_code(message, generated_code)
-    elif intent == "hardware_interaction":
-        return handle_hardware_interaction(message)
-    elif intent == "execute_os_command":
-        return handle_execute_os_command(message)
-    else:
-        return "Unknown intent"
-
 memory_setting = {'enabled': True}
 
 @main.route('/api/memory', methods=['GET', 'POST'])
@@ -250,7 +241,7 @@ def handle_special_message(data):
             response_message = "Long-term memory is now active."
             add_long_term_memory(session_id, response_message)
         else:
-            response_message = "Long-term memory is now inactive."
+            response_message is "Long-term memory is now inactive."
 
         add_message(session_id, user_id, 'assistant', response_message, "system")
         emit('message', {'user': "", 'assistant': response_message})

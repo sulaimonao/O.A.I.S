@@ -5,9 +5,25 @@ import re
 import spacy
 from utils.file_operations import write_file, read_file  # Assuming these are your custom utilities
 from utils.code_execution import execute_code  # Assuming this is your custom utility for executing code
+import time
+import os
+import uuid
+import subprocess
 
 # Load spaCy's English language model for intent parsing
 nlp = spacy.load("en_core_web_sm")
+
+WORKSPACE_DIR = "virtual_workspace"
+
+def get_workspace_path():
+    if not os.path.exists(WORKSPACE_DIR):
+        os.makedirs(WORKSPACE_DIR)
+    return WORKSPACE_DIR
+
+def generate_unique_filename(extension=".py"):
+    timestamp = time.strftime("%Y%m%d-%H%M%S")
+    unique_id = str(uuid.uuid4())
+    return f"script_{timestamp}_{unique_id}{extension}"
 
 def parse_intent(message):
     """
@@ -38,11 +54,11 @@ def handle_write_to_file(message, content):
     Handle writing content to a file based on user intent.
     """
     # Determine the filename and extension based on the message content
-    filename = "output.txt"
+    filename = generate_unique_filename(extension=".txt")
     if "poem" in message.lower():
-        filename = "poem.txt"
+        filename = generate_unique_filename(extension=".txt")
     elif "data" in message.lower():
-        filename = "data.csv"
+        filename = generate_unique_filename(extension=".csv")
 
     # Write the content to the file
     result = write_file(filename, content)
@@ -65,22 +81,42 @@ def handle_read_from_file(message):
     logging.debug(f"Content read from file: {filename}, Content: {content}")
     return content
 
-def handle_execute_code(message, generated_code):
+def extract_python_code(generated_response):
     """
-    Handle the execution of generated code based on user intent.
+    Extract Python code from the LLM's generated response using regex.
     """
-    # Extract the Python code using regex
-    match = re.search(r"```python(.*?)```", generated_code, re.DOTALL)
+    match = re.search(r"```python(.*?)```", generated_response, re.DOTALL)
     if match:
-        code = match.group(1).strip()
-    else:
-        logging.error("No valid Python code block found in the response.")
-        return "Failed to find valid Python code in the response."
+        return match.group(1).strip()
+    return None
 
-    # Execute the code and return the output
-    result = execute_code(code)
-    logging.debug(f"Code executed. Result: {result}")
-    return result
+def handle_execute_code(message, generated_response):
+    """
+    Handle the execution of Python code extracted from the LLM response.
+    """
+    code = extract_python_code(generated_response)
+    
+    if code:
+        workspace_path = get_workspace_path()
+        filename = generate_unique_filename()
+
+        # Save the code to a file within the workspace
+        file_path = os.path.join(workspace_path, filename)
+        with open(file_path, "w") as f:
+            f.write(code)
+        
+        try:
+            # Execute the Python code and capture the output
+            result = subprocess.check_output(["python3", file_path], stderr=subprocess.STDOUT)
+            result = result.decode('utf-8')
+            logging.debug(f"Code executed successfully: {result}")
+            return f"Code executed successfully:\n{result}"
+        except subprocess.CalledProcessError as e:
+            error_output = e.output.decode('utf-8')
+            logging.error(f"Error executing code: {error_output}")
+            return f"Error executing code:\n{error_output}"
+    else:
+        return "Failed to find valid Python code in the response."
 
 def handle_hardware_interaction(message):
     """
