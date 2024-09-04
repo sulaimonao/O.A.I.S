@@ -17,3 +17,5 @@ scan_repo.py
 folder_structure_versioncontrol.py
 folder_to_database.py
 .env
+.DS_Store
+.env

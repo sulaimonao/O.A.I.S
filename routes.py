@@ -158,7 +158,12 @@ def communicate_with_llm(message, model, provider, config):
             )
 
             logging.debug(f"OpenAI response object: {response}")
-            return response.choices[0].message.content
+            # Ensure response contains expected fields
+            if response.choices and len(response.choices) > 0:
+                return response.choices[0].message.content.strip()
+            else:
+                logging.error("OpenAI response does not contain expected choices.")
+                return "OpenAI provided an unexpected response."
 
         elif provider == 'google':
             logging.debug("Processing message with Google Gemini")
@@ -182,12 +187,16 @@ def communicate_with_llm(message, model, provider, config):
             logging.debug(f"Google response object: {response}")
 
             try:
-                response_content = ''.join([part.text for part in response.candidates[0].content.parts])
+                # Check if the response is in the expected format
+                if response.candidates and len(response.candidates) > 0:
+                    response_content = ''.join([part.text for part in response.candidates[0].content.parts])
+                    return response_content.strip()
+                else:
+                    logging.error("Google Gemini response does not contain candidates or parts.")
+                    return "Google Gemini provided an unexpected response."
             except AttributeError as e:
                 logging.error(f"Error extracting text from Google response parts: {e}, raw response: {response}")
                 return "Unexpected response format from Google Gemini."
-
-            return response_content
 
         else:
             return "Provider not supported."
@@ -195,6 +204,7 @@ def communicate_with_llm(message, model, provider, config):
     except Exception as e:
         logging.error(f"Error communicating with LLM: {e}")
         return f"Failed to communicate with the LLM provider: {e}"
+
 
 memory_setting = {'enabled': True}
 
