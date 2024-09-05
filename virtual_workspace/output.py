@@ -1,25 +1,21 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-# Define the circle parameters
+# Create a circle with radius 5
 radius = 5
-max_axis = 10
-
-# Create a circle with the given radius
-theta = np.linspace(0, 2*np.pi, 100)
-x = radius * np.cos(theta)
-y = radius * np.sin(theta)
+x = np.linspace(-radius, radius, 100)
+y = np.sqrt(radius**2 - x**2)
 
 # Plot the circle
-plt.plot(x, y, color='red', linewidth=2)
+plt.plot(x, y, color='red')
+plt.plot(x, -y, color='red')
 
-# Set the axes limits
-plt.xlim(-max_axis, max_axis)
-plt.ylim(-max_axis, max_axis)
+# Set axis limits
+plt.xlim(-10, 10)  # Maximum axis of 10
+plt.ylim(-10, 10)
 
-# Remove the axes ticks and labels
-plt.xticks([])
-plt.yticks([])
+# Remove axes
+plt.axis('off')
 
-# Show the plot
+# Display the plot
 plt.show()

@@ -20,3 +20,6 @@ folder_to_database.py
 .DS_Store
 .env
 .env
+/A1_tools
+/shared_venv
+/virtual_workspace
