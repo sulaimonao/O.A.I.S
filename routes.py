@@ -248,7 +248,7 @@ def handle_special_message(data):
         chatroom_memory = data.get('chatroomMemory')
 
         if long_term_memory:
-            response_message = "Long-term memory is now active."
+            response_message == "Long-term memory is now active."
             add_long_term_memory(session_id, response_message)
         else:
             response_message is "Long-term memory is now inactive."
@@ -257,7 +257,7 @@ def handle_special_message(data):
         emit('message', {'user': "", 'assistant': response_message})
 
         if chatroom_memory:
-            response_message = "Chatroom memory is now active."
+            response_message == "Chatroom memory is now active."
             add_chatroom_memory(session_id, response_message)
         else:
             response_message is "Chatroom memory is now inactive."
