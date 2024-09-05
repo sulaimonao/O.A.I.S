@@ -10,7 +10,6 @@ body {
 
 #container {
     display: flex;
-    flex-direction: column;
     width: 80%;
     max-width: 1200px;
     margin-top: 20px;
@@ -20,63 +19,32 @@ body {
     background-color: #fff;
 }
 
-#header {
-    display: flex;
-    align-items: center;
-    padding: 20px;
-    background-color: #fff;
-    color: #333;
-    width: 100%;
-    box-sizing: border-box;
-    border-bottom: 1px solid #ccc; /* Optional: Add a subtle border for separation */
-}
-
-#logo {
-    height: 50px;
-    margin-right: 20px;
-}
-
-#header h1 {
-    margin: 0;
-    font-size: 1.5em;
-}
-
-#content {
-    display: flex;
-    flex: 1;
-    height: calc(100vh - 100px); /* Adjust based on header height */
-}
-
-#sidebar {
+#settings-sidebar {
     width: 25%;
     padding: 20px;
     border-right: 1px solid #ccc;
     background-color: #f9f9f9;
-    overflow-y: auto;
 }
 
-#sidebar h2 {
+#settings-sidebar h2 {
     margin-top: 0;
     font-size: 1.2em;
     color: #333;
-    border-bottom: 1px solid #ccc; /* Add border bottom to headings */
-    padding-bottom: 5px; /* Add padding bottom for spacing */
-    margin-bottom: 15px; /* Add margin bottom for spacing */
 }
 
-#sidebar form {
+#settings-sidebar form {
     display: flex;
     flex-direction: column;
 }
 
-#sidebar label {
+#settings-sidebar label {
     margin-bottom: 5px;
     color: #555;
 }
 
-#sidebar select,
-#sidebar input,
-#sidebar button {
+#settings-sidebar select,
+#settings-sidebar input,
+#settings-sidebar button {
     margin-bottom: 15px;
     padding: 10px;
     border-radius: 5px;
@@ -84,24 +52,22 @@ body {
     box-sizing: border-box;
 }
 
-#sidebar button {
+#settings-sidebar button {
     background-color: #007bff;
     color: #fff;
     cursor: pointer;
     transition: background-color 0.3s;
 }
 
-#sidebar button:hover {
+#settings-sidebar button:hover {
     background-color: #0056b3;
 }
 
 #chat-container {
-    flex: 1;
     display: flex;
     flex-direction: column;
+    flex: 1;
     padding: 20px;
-    height: 100%;
-    box-sizing: border-box;
 }
 
 #chat-history {
@@ -111,6 +77,8 @@ body {
     border: 1px solid #ccc;
     border-radius: 5px;
     background-color: #f1f1f1;
+    height: 400px;
+    width: 100%;
     margin-bottom: 10px;
 }
 
@@ -151,46 +119,4 @@ body {
     margin: 10px 0;
     max-width: 100%;
     border-radius: 10px;
-}
-
-#memory-settings, #profile-management {
-    margin-bottom: 20px; /* Add margin bottom for spacing */
-}
-
-#memory-settings h2, #profile-management h2 {
-    margin-top: 0;
-}
-
-#memory-settings label, #profile-management label {
-    display: block;
-    margin-bottom: 5px;
-}
-
-#memory-settings input, #profile-management select, #profile-management button {
-    display: block;
-    margin-bottom: 10px;
-}
-
-.execution-result {
-    background-color: #ffeb3b;
-    padding: 10px;
-    border-radius: 5px;
-    margin-top: 10px;
-    font-family: 'Courier New', Courier, monospace;
-    color: #333;
-}
-
-.generated-file a {
-    display: inline-block;
-    margin-top: 10px;
-    padding: 10px;
-    background-color: #4caf50;
-    color: white;
-    text-decoration: none;
-    border-radius: 5px;
-    transition: background-color 0.3s;
-}
-
-.generated-file a:hover {
-    background-color: #388e3c;
 }
