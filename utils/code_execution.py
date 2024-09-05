@@ -15,7 +15,6 @@ def virtualenv(name):
         logging.info(f"Cleaning up virtual environment at {env_path}")
         # Commenting out this line will prevent the deletion of the virtual environment and files
         #subprocess.run(['rm', '-rf', env_path])
-        pass # Do nothing to preserve the environment and files
 
 def execute_code(code, additional_packages=None):
     additional_packages = additional_packages or []
