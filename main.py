@@ -16,8 +16,8 @@ socketio = SocketIO(app)
 
 logging.basicConfig(level=logging.DEBUG)
 
-# Initialize OpenAI client
-openai_client = OpenAI(api_key=Config.OPENAI_API_KEY)
+#Configure OAI GPT
+client = OpenAI(api_key=Config.OPENAI_API_KEY)
 
 # Configure Google Gemini
 genai.configure(api_key=Config.GOOGLE_API_KEY)
@@ -41,15 +41,24 @@ def upload():
 def generate_code_via_llm(prompt, model, provider, config):
     try:
         if provider == 'openai':
-            response = openai_client.Completions.create(
-                prompt=prompt,
+            response, headers = client.chat.completions.with_raw_response.create(
                 model=model,
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant."},
+                    {"role": "user", "content": prompt}
+                ],
                 temperature=config['temperature'],
                 max_tokens=config['maxTokens'],
                 top_p=config['topP']
             )
-            code = response['choices'][0]['text']
+            # Log the request ID for tracking
+            logging.debug(f"OpenAI Request ID: {headers['x-request-id']}")
+            
+            # Parse the response to get the completion
+            completion = response.parse()
+            code = completion['choices'][0]['message']['content']
         elif provider == 'google':
+            # Google API logic
             if not model.startswith('models/') and not model.startswith('tunedModels/'):
                 model = 'models/' + model
             genai_model = genai.GenerativeModel(model)
@@ -121,27 +130,24 @@ def handle_message(data):
         history = [{"role": "system", "content": Config.SYSTEM_PROMPT}]
         history.append({"role": "user", "content": message})
         try:
-            response = openai_client.Chat.completions.create(
-                model=model,
-                messages=history,
-                max_tokens=config.get('maxTokens', Config.MAX_TOKENS),
-                temperature=config.get('temperature', Config.TEMPERATURE),
-                top_p=config.get('topP', Config.TOP_P)
-            )
-            content = response['choices'][0]['message']['content']
+            stream = client.chat.completions.create(model=model,
+            messages=history,
+            max_tokens=config.get('maxTokens', Config.MAX_TOKENS),
+            temperature=config.get('temperature', Config.TEMPERATURE),
+            top_p=config.get('topP', Config.TOP_P),
+            stream=True) #Change toOne word at a time like on the website
+
+            content = ""
+            for chunk in stream:
+                content_chunk = getattr(chunk.choices[0].delta, "content", None)  # Get 'content', default to None
+                if content_chunk:  # Only concatenate if content is not None
+                    content += content_chunk
+                    emit('message', {'assistant': content})
+                    logging.debug(f'Streaming response chunk: {content_chunk}')
+
             history.append({"role": "assistant", "content": content})
-            logging.debug(f'OpenAI Response: {content}')
-            if "generate image" in message.lower():
-                image_response = generate_image_via_llm(content, model, provider, config)
-                if 'image_url' in image_response:
-                    emit('message', {'user': message, 'assistant': content, 'image_url': image_response['image_url']})
-                    logging.debug(f'Emitting image response: {image_response["image_url"]}')
-                else:
-                    emit('message', {'user': message, 'assistant': content, 'error': image_response['error']})
-                    logging.error(f'Error emitting image response: {image_response["error"]}')
-            else:
-                emit('message', {'user': message, 'assistant': content})
-                logging.debug(f'Emitting assistant response: {content}')
+            logging.debug(f'Final OpenAI Response: {content}')
+
         except Exception as e:
             logging.error(f'Error with OpenAI: {str(e)}')
             emit('message', {'error': str(e)})

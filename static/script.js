@@ -2,6 +2,7 @@ $(document).ready(function() {
     var socket = io();
     var selectedModel = '';  // Default model
     var selectedProvider = '';  // Default provider
+    var botResponseBuffer = "";  // Buffer to store bot response chunks
 
     // Function to update model options based on provider
     function updateModelOptions(provider) {
@@ -52,15 +53,16 @@ $(document).ready(function() {
             const formData = new FormData();
             const customEngine = $('#custom-engine').val();
             const config = {
-            temperature: $('#temperature').val(),
-            maxTokens: $('#max-tokens').val(),
-            topP: $('#top-p').val()
-        };
+                temperature: $('#temperature').val(),
+                maxTokens: $('#max-tokens').val(),
+                topP: $('#top-p').val()
+            };
 
-        let modelToUse = selectedModel;
-        if (selectedModel === 'custom') {
-            modelToUse = customEngine;
-        }
+            let modelToUse = selectedModel;
+            if (selectedModel === 'custom') {
+                modelToUse = customEngine;
+            }
+
             formData.append('file', file);
             $.ajax({
                 url: '/upload',
@@ -85,15 +87,31 @@ $(document).ready(function() {
         return false;
     });
 
+    // Handle streaming response chunks
     socket.on('message', function(data) {
         if (data.error) {
             alert(data.error);
         } else {
-            $('#chat-history').append('<div class="user-message">' + data.user + '</div>');
-            $('#chat-history').append('<div class="bot-response">' + data.assistant + '</div>');
+            if (data.user) {
+                $('#chat-history').append('<div class="user-message">' + data.user + '</div>');
+            }
+
+            if (data.assistant) {
+                // Buffer the bot response chunks
+                botResponseBuffer += data.assistant;
+
+                // If bot-response div exists, update it with the buffer
+                if ($('#chat-history .bot-response').last().length) {
+                    $('#chat-history .bot-response').last().text(botResponseBuffer);  // Update the last response
+                } else {
+                    $('#chat-history').append('<div class="bot-response">' + botResponseBuffer + '</div>');  // Create new if first chunk
+                }
+            }
+
             if (data.image_url) {
                 $('#chat-history').append('<img src="' + data.image_url + '" class="generated-image" alt="Generated Image">');
             }
+
             $('#chat-history').scrollTop($('#chat-history')[0].scrollHeight);
         }
     });

@@ -1,21 +1,17 @@
 import matplotlib.pyplot as plt
-import numpy as np
 
-# Create a circle with radius 5
-radius = 5
-x = np.linspace(-radius, radius, 100)
-y = np.sqrt(radius**2 - x**2)
+# Define the square's coordinates
+x = [0, 5, 5, 0, 0]  # x-coordinates of the square's vertices
+y = [0, 0, 5, 5, 0]  # y-coordinates of the square's vertices
 
-# Plot the circle
-plt.plot(x, y, color='red')
-plt.plot(x, -y, color='red')
+# Plot the square
+plt.plot(x, y, 'r-', linewidth=2)  # Plot the square with a red line
 
-# Set axis limits
-plt.xlim(-10, 10)  # Maximum axis of 10
-plt.ylim(-10, 10)
-
-# Remove axes
-plt.axis('off')
+# Set axis limits and labels
+plt.xlim(-1, 6)  # Set x-axis limits
+plt.ylim(-1, 6)  # Set y-axis limits
+plt.xlabel('X')  # Label the x-axis
+plt.ylabel('Y')  # Label the y-axis
 
 # Display the plot
 plt.show()
