@@ -1,17 +1,25 @@
 import matplotlib.pyplot as plt
 
-# Define the square's coordinates
-x = [0, 5, 5, 0, 0]  # x-coordinates of the square's vertices
-y = [0, 0, 5, 5, 0]  # y-coordinates of the square's vertices
+# Define circle parameters
+radius = 5
+center_x = 0
+center_y = 0
 
-# Plot the square
-plt.plot(x, y, 'r-', linewidth=2)  # Plot the square with a red line
+# Create a circle using matplotlib.patches.Circle
+circle = plt.Circle((center_x, center_y), radius, color='red')
 
-# Set axis limits and labels
-plt.xlim(-1, 6)  # Set x-axis limits
-plt.ylim(-1, 6)  # Set y-axis limits
-plt.xlabel('X')  # Label the x-axis
-plt.ylabel('Y')  # Label the y-axis
+# Create a figure and axes
+fig, ax = plt.subplots()
 
-# Display the plot
+# Add the circle to the axes
+ax.add_patch(circle)
+
+# Set the axis limits
+ax.set_xlim(-radius - 1, radius + 1)
+ax.set_ylim(-radius - 1, radius + 1)
+
+# Set aspect ratio to equal to ensure the circle appears circular
+ax.set_aspect('equal')
+
+# Show the plot
 plt.show()

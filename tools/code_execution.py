@@ -69,3 +69,47 @@ def execute_code(code):
         except subprocess.CalledProcessError as e:
             logging.error(f"Error during code execution: {e.stderr}")
             return e.stderr
+
+def execute_bash_code(code):
+    """Execute Bash code using a shell."""
+    exec_script = os.path.join(workspace_dir, f'exec_code_{uuid.uuid4().hex}.sh')
+
+    # Write the code to a Bash script
+    with open(exec_script, 'w') as f:
+        f.write(code)
+
+    # Run the script
+    try:
+        result = subprocess.run(
+            ['bash', exec_script],
+            check=True,
+            capture_output=True,
+            text=True
+        )
+        logging.debug(f"Execution result: {result.stdout}")
+        return result.stdout
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Error during bash code execution: {e.stderr}")
+        return e.stderr
+
+def execute_js_code(code):
+    """Execute JavaScript code using Node.js."""
+    exec_script = os.path.join(workspace_dir, f'exec_code_{uuid.uuid4().hex}.js')
+
+    # Write the code to a JS file
+    with open(exec_script, 'w') as f:
+        f.write(code)
+
+    # Run the JS script using Node.js
+    try:
+        result = subprocess.run(
+            ['node', exec_script],
+            check=True,
+            capture_output=True,
+            text=True
+        )
+        logging.debug(f"Execution result: {result.stdout}")
+        return result.stdout
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Error during JavaScript code execution: {e.stderr}")
+        return e.stderr
