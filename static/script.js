@@ -44,10 +44,15 @@ $(document).ready(function() {
         alert('Settings saved! Using provider: ' + selectedProvider + ', model: ' + selectedModel);
     });
 
+    // Submit the form with the user's message
     $('form').submit(function(event) {
         event.preventDefault();
         const message = $('#user-input').val();
         const fileInput = $('#file-input')[0];
+
+        // Append the user's message to the chat
+        $('#chat-history').append('<div class="user-message">' + message + '</div>');
+
         if (fileInput.files.length > 0) {
             const file = fileInput.files[0];
             const formData = new FormData();
@@ -95,25 +100,26 @@ $(document).ready(function() {
             if (data.user) {
                 $('#chat-history').append('<div class="user-message">' + data.user + '</div>');
             }
-    
+
             if (data.assistant) {
-                // Buffer the bot response chunks for streaming or non-streaming responses
+                // Append the streaming response chunks to the botResponseBuffer
                 botResponseBuffer += data.assistant;
-    
-                // If bot-response div exists, update it with the buffer
-                if ($('#chat-history .bot-response').last().length) {
-                    $('#chat-history .bot-response').last().text(botResponseBuffer);  // Update the last response
+
+                // Check if a bot-response div exists; if not, create it
+                if (!$('#chat-history .bot-response').last().length) {
+                    $('#chat-history').append('<div class="bot-response">' + botResponseBuffer + '</div>');
                 } else {
-                    $('#chat-history').append('<div class="bot-response">' + botResponseBuffer + '</div>');  // Create new if first chunk
+                    // Update the last bot-response div with the new chunk
+                    $('#chat-history .bot-response').last().text(botResponseBuffer);
                 }
             }
-    
-            if (data.image_url) {
-                $('#chat-history').append('<img src="' + data.image_url + '" class="generated-image" alt="Generated Image">');
-            }
-    
+
             $('#chat-history').scrollTop($('#chat-history')[0].scrollHeight);
         }
     });
-    
+
+    // Reset the bot response buffer when the response ends
+    socket.on('message_end', function() {
+        botResponseBuffer = "";  // Reset the buffer for the next message
+    });
 });

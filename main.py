@@ -129,28 +129,33 @@ def handle_message(data):
     elif provider == 'openai':
         history = [{"role": "system", "content": Config.SYSTEM_PROMPT}]
         history.append({"role": "user", "content": message})
+        # Handle OpenAI streaming response
         try:
-            stream = client.chat.completions.create(model=model,
-            messages=history,
-            max_tokens=config.get('maxTokens', Config.MAX_TOKENS),
-            temperature=config.get('temperature', Config.TEMPERATURE),
-            top_p=config.get('topP', Config.TOP_P),
-            stream=True) #Change toOne word at a time like on the website
+            stream = client.chat.completions.create(
+                model=model,
+                messages=history,
+                max_tokens=config.get('maxTokens', Config.MAX_TOKENS),
+                temperature=config.get('temperature', Config.TEMPERATURE),
+                top_p=config.get('topP', Config.TOP_P),
+                stream=True  # Stream the response
+            )
 
             content = ""
             for chunk in stream:
-                content_chunk = getattr(chunk.choices[0].delta, "content", None)  # Get 'content', default to None
-                if content_chunk:  # Only concatenate if content is not None
+                content_chunk = getattr(chunk.choices[0].delta, "content", None)
+                if content_chunk:  # Only append content if it's not None
                     content += content_chunk
-                    emit('message', {'assistant': content})
+                    emit('message', {'assistant': content_chunk})  # Emit each chunk progressively
                     logging.debug(f'Streaming response chunk: {content_chunk}')
 
             history.append({"role": "assistant", "content": content})
             logging.debug(f'Final OpenAI Response: {content}')
+            emit('message_end')  # Signal that the streaming has finished
 
         except Exception as e:
             logging.error(f'Error with OpenAI: {str(e)}')
             emit('message', {'error': str(e)})
+
     elif provider == 'google':
         try:
             genai_model = genai.GenerativeModel(model)
@@ -160,17 +165,20 @@ def handle_message(data):
                 response = genai_model.generate_content([message, file])
             else:
                 response = genai_model.generate_content(message)
-            
+
             content = response.text
             logging.debug(f'Google Response: {content}')
             
-            # Emit the assistant's response via Socket.IO
+            # Emit the full Google response at once (since it's non-streaming)
             emit('message', {'assistant': content})
             logging.debug(f'Emitting assistant response: {content}')
-        
+            
+            emit('message_end')  # Signal the end of the message
+            
         except Exception as e:
             logging.error(f'Error with Google: {str(e)}')
             emit('message', {'error': str(e)})
+
 
 if __name__ == '__main__':
     if not os.path.exists('uploads'):
