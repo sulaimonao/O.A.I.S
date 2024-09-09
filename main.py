@@ -40,20 +40,25 @@ def upload():
 
 def generate_code_via_llm(prompt, model, provider, config):
     try:
+        # Set default values from Config.py if not provided
+        temperature = config.get('temperature', Config.TEMPERATURE)
+        max_tokens = config.get('maxTokens', Config.MAX_TOKENS)
+        top_p = config.get('topP', Config.TOP_P)
+
         if provider == 'openai':
-            response, headers = client.chat.completions.with_raw_response.create(
+            response = client.chat.completions.with_raw_response.create(
                 model=model,
                 messages=[
                     {"role": "system", "content": "You are a helpful assistant."},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=config['temperature'],
-                max_tokens=config['maxTokens'],
-                top_p=config['topP']
+                temperature=temperature,  # Use the value from config or default
+                max_tokens=max_tokens,
+                top_p=top_p
             )
             # Log the request ID for tracking
-            logging.debug(f"OpenAI Request ID: {headers['x-request-id']}")
-            
+            logging.debug(f"OpenAI Request ID: {response.headers.get('x-request-id')}")
+
             # Parse the response to get the completion
             completion = response.parse()
             code = completion['choices'][0]['message']['content']

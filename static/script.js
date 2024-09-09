@@ -22,6 +22,11 @@ $(document).ready(function() {
     // Initialize model options
     updateModelOptions($('#provider-select').val());
 
+    // Initialize temperature, maxTokens, and topP with default values from config.py (as an example)
+    $('#temperature').val(0.8);  // Default from config.py
+    $('#max-tokens').val(4000);  // Default from config.py
+    $('#top-p').val(1.0);        // Default from config.py
+
     // Update model options when provider changes
     $('#provider-select').change(function() {
         selectedProvider = $(this).val();
@@ -45,52 +50,65 @@ $(document).ready(function() {
     });
 
     // Submit the form with the user's message
-    $('form').submit(function(event) {
-        event.preventDefault();
-        const message = $('#user-input').val();
-        const fileInput = $('#file-input')[0];
+$('form').submit(function(event) {
+    event.preventDefault();
+    const message = $('#user-input').val();
+    const fileInput = $('#file-input')[0];
 
-        // Append the user's message to the chat
-        $('#chat-history').append('<div class="user-message">' + message + '</div>');
+    // Fetch config values (temperature, maxTokens, topP) from user input and ensure they are numbers
+    const config = {
+        temperature: parseFloat($('#temperature').val()) || 0.8,  // Convert to float
+        maxTokens: parseInt($('#max-tokens').val(), 10) || 4000,  // Convert to integer
+        topP: parseFloat($('#top-p').val()) || 1.0  // Convert to float
+    };
 
-        if (fileInput.files.length > 0) {
-            const file = fileInput.files[0];
-            const formData = new FormData();
-            const customEngine = $('#custom-engine').val();
-            const config = {
-                temperature: $('#temperature').val(),
-                maxTokens: $('#max-tokens').val(),
-                topP: $('#top-p').val()
-            };
+    // Append the user's message to the chat
+    $('#chat-history').append('<div class="user-message">' + message + '</div>');
 
-            let modelToUse = selectedModel;
-            if (selectedModel === 'custom') {
-                modelToUse = customEngine;
-            }
+    if (fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        const formData = new FormData();
+        const customEngine = $('#custom-engine').val();
 
-            formData.append('file', file);
-            $.ajax({
-                url: '/upload',
-                type: 'POST',
-                data: formData,
-                processData: false,
-                contentType: false,
-                success: function(response) {
-                    if (response.error) {
-                        alert(response.error);
-                    } else {
-                        socket.send(JSON.stringify({ message: message, model: selectedModel, provider: selectedProvider, filename: response.filename }));
-                        $('#user-input').val('');
-                        $('#file-input').val('');
-                    }
-                }
-            });
-        } else {
-            socket.send(JSON.stringify({ message: message, model: selectedModel, provider: selectedProvider }));
-            $('#user-input').val('');
+        let modelToUse = selectedModel;
+        if (selectedModel === 'custom') {
+            modelToUse = customEngine;
         }
-        return false;
-    });
+
+        formData.append('file', file);
+        $.ajax({
+            url: '/upload',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.error) {
+                    alert(response.error);
+                } else {
+                    socket.send(JSON.stringify({
+                        message: message, 
+                        model: selectedModel, 
+                        provider: selectedProvider, 
+                        filename: response.filename, 
+                        config: config  // Send config to the backend
+                    }));
+                    $('#user-input').val('');
+                    $('#file-input').val('');
+                }
+            }
+        });
+    } else {
+        socket.send(JSON.stringify({
+            message: message, 
+            model: selectedModel, 
+            provider: selectedProvider,
+            config: config  // Send config to the backend
+        }));
+        $('#user-input').val('');
+    }
+    return false;
+});
 
     // Handle streaming response chunks
     socket.on('message', function(data) {
