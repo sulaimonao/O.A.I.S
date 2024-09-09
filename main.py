@@ -160,19 +160,14 @@ def handle_message(data):
                 response = genai_model.generate_content([message, file])
             else:
                 response = genai_model.generate_content(message)
+            
             content = response.text
             logging.debug(f'Google Response: {content}')
-            if "generate image" in message.lower():
-                image_response = generate_image_via_llm(content, model, provider, config)
-                if 'image_url' in image_response:
-                    emit('message', {'user': message, 'assistant': content, 'image_url': image_response['image_url']})
-                    logging.debug(f'Emitting image response: {image_response["image_url"]}')
-                else:
-                    emit('message', {'user': message, 'assistant': content, 'error': image_response['error']})
-                    logging.error(f'Error emitting image response: {image_response["error"]}')
-            else:
-                emit('message', {'user': message, 'assistant': content})
-                logging.debug(f'Emitting assistant response: {content}')
+            
+            # Emit the assistant's response via Socket.IO
+            emit('message', {'assistant': content})
+            logging.debug(f'Emitting assistant response: {content}')
+        
         except Exception as e:
             logging.error(f'Error with Google: {str(e)}')
             emit('message', {'error': str(e)})

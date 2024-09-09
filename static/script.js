@@ -95,11 +95,11 @@ $(document).ready(function() {
             if (data.user) {
                 $('#chat-history').append('<div class="user-message">' + data.user + '</div>');
             }
-
+    
             if (data.assistant) {
-                // Buffer the bot response chunks
+                // Buffer the bot response chunks for streaming or non-streaming responses
                 botResponseBuffer += data.assistant;
-
+    
                 // If bot-response div exists, update it with the buffer
                 if ($('#chat-history .bot-response').last().length) {
                     $('#chat-history .bot-response').last().text(botResponseBuffer);  // Update the last response
@@ -107,12 +107,13 @@ $(document).ready(function() {
                     $('#chat-history').append('<div class="bot-response">' + botResponseBuffer + '</div>');  // Create new if first chunk
                 }
             }
-
+    
             if (data.image_url) {
                 $('#chat-history').append('<img src="' + data.image_url + '" class="generated-image" alt="Generated Image">');
             }
-
+    
             $('#chat-history').scrollTop($('#chat-history')[0].scrollHeight);
         }
     });
+    
 });
