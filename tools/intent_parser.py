@@ -17,6 +17,31 @@ def parse_intent(message):
 
     return "unknown"
 
+def handle_write_to_file(message, content):
+    filename = "output"
+    extension = ".txt"
+
+    if "poem" in message.lower():
+        filename = "poem"
+    elif "song" in message.lower():
+        filename = "song"
+    elif "text" in message.lower():
+        filename = "text"
+    elif "image" in message.lower():
+        filename = "image"
+        extension = ".png"  # Placeholder, should be image processing logic
+    elif "audio" in message.lower():
+        filename = "audio"
+        extension = ".mp3"  # Placeholder, should be audio processing logic
+    elif "data" in message.lower():
+        filename = "data"
+        extension = ".csv"  # Placeholder, should be data processing logic
+
+    full_filename = f"{filename}{extension}"
+    result = write_file(full_filename, content)
+    logging.debug(f"Content written to file: {full_filename}, Result: {result}")
+    return f"Content has been written to {full_filename}"
+
 def handle_execute_code(message, generated_code):
     # Detect the language and extract code from the generated response
     match = re.search(r"```(\w+)\s+(.*?)\s+```", generated_code, re.DOTALL)
