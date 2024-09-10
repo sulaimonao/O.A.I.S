@@ -1,19 +1,22 @@
 import logging
 import re
 from .file_operations import write_file
-from .code_execution import execute_code
+from .code_execution import execute_code, execute_bash_code, execute_js_code
 
 logging.basicConfig(level=logging.DEBUG)
 
 def parse_intent(message):
+    """Parse the message to check if it should trigger tool usage."""
     logging.debug(f"Parsing intent for message: {message.lower()}")
 
+    # Check if the message contains tool-related keywords
     if any(keyword in message.lower() for keyword in ["write to file", "create to file", "save a file"]):
         return "write_to_file"
-    if "write/execute" in message.lower() or "generate code" in message.lower():
+    if "write/execute" in message.lower() or "run code" in message.lower() or "execute code" in message.lower():
         return "execute_code"
 
-    return "unknown"
+    # If no tool-related keywords, return 'api_request' for normal API processing
+    return "api_request"
 
 def handle_write_to_file(message, content):
     filename = "output"
@@ -41,33 +44,27 @@ def handle_write_to_file(message, content):
     return f"Content has been written to {full_filename}"
 
 def handle_execute_code(message, generated_code):
-    # Detect the language and clean the code
+    """Handles execution of Python, Bash, and JavaScript code."""
     match = re.search(r"```(\w+)\s+(.*?)\s+```", generated_code, re.DOTALL)
     if match:
-        language = match.group(1)
+        language = match.group(1).lower()
         code = match.group(2)
     else:
         language = "text"
         code = generated_code.strip('```').strip()
 
-    # Determine the file extension based on the language
-    extension = {
-        "python": ".py",
-        "bash": ".sh",
-        "javascript": ".js",
-        "text": ".txt"
-    }.get(language, ".txt")
+    # Dispatch table for different language code executions
+    language_execution = {
+        "python": execute_code,
+        "bash": execute_bash_code,
+        "javascript": execute_js_code
+    }
 
-    filename = f"output{extension}"
-
-    # Execute the code if it's a Python script
-    if language == "python":
-        result = execute_code(code)
-        logging.debug(f"Python code executed. Result: {result}")
+    if language in language_execution:
+        result = language_execution[language](code)
     else:
-        result = f"Code in {language} language saved to {filename}"
+        result = f"Code in {language} language saved to output.txt"
+        write_file(f"output.txt", code)
 
-    # Write the cleaned code to a file
-    write_file(filename, code)
-    logging.debug(f"Code written to file: {filename}")
+    logging.debug(f"Code execution result: {result}")
     return result

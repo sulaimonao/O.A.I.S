@@ -1,0 +1,25 @@
+
+.DS_Store
+.env
+.env copy
+.env
+/instance
+*.json
+.env
+.env
+*.pyc
+scan_repo.py
+.env
+/virtual_workspace
+.env
+.DS_Store
+.env
+folder_structure_versioncontrol.py
+folder_to_database.py
+.env
+.DS_Store
+.env
+.env
+/A1_tools
+/shared_venv
+/virtual_workspace

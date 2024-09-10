@@ -1,29 +1,47 @@
 $(document).ready(function() {
-    var socket = io.connect('http://' + document.domain + ':' + location.port);
-    var selectedModel = 'gpt-4o';  // Default model
-    var selectedProvider = 'openai';  // Default provider
+    var socket = io();
+    var selectedModel = '';  // Default model
+    var selectedProvider = '';  // Default provider
+    var botResponseBuffer = "";  // Buffer to store bot response chunks
 
+    // Centralized model options
+    const modelsByProvider = {
+        'openai': ['gpt-4o', 'gpt-4o-mini'],
+        'google': ['gemini-1.5-pro', 'gemini-1.5-flash']
+    };
+
+    // Function to update model options based on provider
     function updateModelOptions(provider) {
-        var modelOptions = '';
-        if (provider === 'openai') {
-            modelOptions += '<option value="gpt-4o">GPT-4o</option>';
-            modelOptions += '<option value="gpt-4o-mini">GPT-4o-mini</option>';
-        } else if (provider === 'google') {
-            modelOptions += '<option value="gemini-1.5-pro">Gemini 1.5 Pro</option>';
-            modelOptions += '<option value="gemini-1.5-flash">Gemini 1.5 Flash</option>';
-        }
-        $('#model-select').html(modelOptions);
-        $('#custom-engine').hide();
-        $('#model-select').change();
+        const modelOptions = modelsByProvider[provider] || [];
+        let optionsHtml = '';
+        modelOptions.forEach(model => {
+            optionsHtml += `<option value="${model}">${model}</option>`;
+        });
+        $('#model-select').html(optionsHtml);
     }
 
+    // Initialize model options based on provider
     updateModelOptions($('#provider-select').val());
 
+    // Default config values
+    const defaultConfig = {
+        temperature: 0.8,
+        maxTokens: 4000,
+        topP: 1.0
+    };
+
+    // Initialize temperature, max tokens, and top-p
+    $('#temperature').val(defaultConfig.temperature);
+    $('#max-tokens').val(defaultConfig.maxTokens);
+    $('#top-p').val(defaultConfig.topP);
+
+    // Update model options when provider changes
     $('#provider-select').change(function() {
         selectedProvider = $(this).val();
         updateModelOptions(selectedProvider);
     });
 
+    // Show or hide custom engine text box based on model selection
     $('#model-select').change(function() {
         if ($(this).val() === 'custom') {
             $('#custom-engine').show();
@@ -32,30 +50,40 @@ $(document).ready(function() {
         }
     });
 
+    // Save settings
     $('#save-settings').click(function() {
         selectedModel = $('#model-select').val();
         selectedProvider = $('#provider-select').val();
         alert('Settings saved! Using provider: ' + selectedProvider + ', model: ' + selectedModel);
     });
 
+    // Submit form and send message
     $('form').submit(function(event) {
         event.preventDefault();
         const message = $('#user-input').val();
         const fileInput = $('#file-input')[0];
+
+        // Fetch config values (temperature, maxTokens, topP) from user input
+        const config = {
+            temperature: parseFloat($('#temperature').val()) || defaultConfig.temperature,
+            maxTokens: parseInt($('#max-tokens').val(), 10) || defaultConfig.maxTokens,
+            topP: parseFloat($('#top-p').val()) || defaultConfig.topP
+        };
+
+        // Append the user's message to the chat
+        $('#chat-history').append('<div class="user-message">' + message + '</div>');
+
+        // Handle file upload and message sending
         if (fileInput.files.length > 0) {
             const file = fileInput.files[0];
             const formData = new FormData();
             const customEngine = $('#custom-engine').val();
-            const config = {
-                temperature: $('#temperature').val(),
-                maxTokens: $('#max-tokens').val(),
-                topP: $('#top-p').val()
-            };
 
             let modelToUse = selectedModel;
             if (selectedModel === 'custom') {
                 modelToUse = customEngine;
             }
+
             formData.append('file', file);
             $.ajax({
                 url: '/upload',
@@ -67,142 +95,58 @@ $(document).ready(function() {
                     if (response.error) {
                         alert(response.error);
                     } else {
-                        socket.emit('message', JSON.stringify({ message: message, model: modelToUse, provider: selectedProvider, filename: response.filename, config: config }));
-                        $('#user-input').val('');
-                        $('#file-input').val('');
+                        socket.send(JSON.stringify({
+                            message: message,
+                            model: modelToUse,
+                            provider: selectedProvider,
+                            filename: response.filename,
+                            config: config
+                        }));
+                        $('#user-input').val(''); // Reset input
+                        $('#file-input').val('');  // Reset file input
                     }
                 }
             });
         } else {
-            const config = {
-                temperature: $('#temperature').val(),
-                maxTokens: $('#max-tokens').val(),
-                topP: $('#top-p').val()
-            };
-            let modelToUse = selectedModel;
-            if (selectedModel === 'custom') {
-                modelToUse = $('#custom-engine').val();
-            }
-            socket.emit('message', JSON.stringify({ message: message, model: modelToUse, provider: selectedProvider, config: config }));
-            $('#user-input').val('');
+            socket.send(JSON.stringify({
+                message: message,
+                model: selectedModel,
+                provider: selectedProvider,
+                config: config
+            }));
+            $('#user-input').val(''); // Reset input
         }
-        return false;
     });
 
+    // Handle streaming response chunks
     socket.on('message', function(data) {
+        console.log('Received message data:', data);  // Add this to debug
+    
         if (data.error) {
             alert(data.error);
         } else {
-            $('#chat-history').append('<div class="user-message">' + data.user + '</div>');
-            $('#chat-history').append('<div class="bot-response">' + data.assistant + '</div>');
-            if (data.image_url) {
-                $('#chat-history').append('<img src="' + data.image_url + '" class="generated-image" alt="Generated Image">');
+            if (data.user) {
+                $('#chat-history').append('<div class="user-message">' + data.user + '</div>');
             }
-            $('#chat-history').scrollTop($('#chat-history')[0].scrollHeight);
-        }
-    });
-
-    // Memory and profile settings initialization
-    const memoryToggle = document.getElementById('memory-toggle');
-    const profileSelect = document.getElementById('profile-select');
-    const createProfileButton = document.getElementById('create-profile');
-
-    // Load existing profiles and memory setting
-    loadProfiles();
-    loadMemorySetting();
-
-    memoryToggle.addEventListener('change', function() {
-        const isEnabled = memoryToggle.checked;
-        updateMemorySetting(isEnabled);
-    });
-
-    createProfileButton.addEventListener('click', function() {
-        const isMemoryEnabled = memoryToggle.checked;
-        if (!isMemoryEnabled) {
-            alert("Please enable memory before creating a profile.");
-            return;
-        }
-
-        const profileName = prompt('Enter new profile name:');
-        if (profileName) {
-            createProfile(profileName);
-        }
-    });
-
-    profileSelect.addEventListener('change', function() {
-        const selectedProfile = profileSelect.value;
-        if (selectedProfile) {
-            selectProfile(selectedProfile);
-        }
-    });
-
-    function loadProfiles() {
-        fetch('/api/profiles')
-            .then(response => response.json())
-            .then(profiles => {
-                profileSelect.innerHTML = ''; // Clear existing options
-                profiles.forEach(profile => {
-                    const option = document.createElement('option');
-                    option.value = profile;
-                    option.textContent = profile;
-                    profileSelect.appendChild(option);
-                });
-            });
-    }
-
-    function loadMemorySetting() {
-        fetch('/api/memory')
-            .then(response => response.json())
-            .then(data => {
-                memoryToggle.checked = data.enabled;
-            });
-    }
-
-    function updateMemorySetting(isEnabled) {
-        fetch('/api/memory', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ enabled: isEnabled })
-        });
-    }
-
-    function createProfile(profileName) {
-        fetch('/api/profiles', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ name: profileName })
-        })
-        .then(response => response.json())
-        .then(profile => {
-            if (!profile.error) {
-                const option = document.createElement('option');
-                option.value = profile.name;
-                option.textContent = profile.name;
-                profileSelect.appendChild(option);
-                profileSelect.value = profile.name;
-            } else {
-                alert(profile.error);
+    
+            if (data.assistant) {
+                botResponseBuffer += data.assistant;
+    
+                // Ensure a new response container is created for each bot response
+                if ($('#chat-history .bot-response').last().length === 0 || $('#chat-history .bot-response').last().text() !== botResponseBuffer) {
+                    $('#chat-history').append('<div class="bot-response"></div>');
+                }
+    
+                // Update the last bot-response div with the new chunk
+                $('#chat-history .bot-response').last().text(botResponseBuffer);
             }
-        });
-    }
+    
+            $('#chat-history').scrollTop($('#chat-history')[0].scrollHeight);  // Scroll to bottom
+        }
+    });    
 
-    function selectProfile(profileName) {
-        fetch('/api/profiles/select', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ name: profileName })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                alert(data.error);
-            }
-        });
-    }
+    // Reset bot response buffer when message ends
+    socket.on('message_end', function() {
+        botResponseBuffer = "";  // Reset buffer for next message
+    });
 });
