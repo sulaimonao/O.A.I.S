@@ -7,6 +7,7 @@ from openai import OpenAI
 import google.generativeai as genai
 from config import Config
 from tools.intent_parser import parse_intent, handle_write_to_file, handle_execute_code
+from tools.code_execution import execute_code
 from tools.file_operations import read_file, write_file
 
 app = Flask(__name__)
@@ -44,8 +45,8 @@ def generate_code_via_llm(prompt, model, provider, config):
         top_p = config.get('topP', Config.TOP_P)
 
         if provider == 'openai':
-            # Check if streaming is enabled or not
-            response = client.chat.completions.create(
+            # Retaining your usage of client.chat.completions.create() 
+            stream = client.chat.completions.create(
                 model=model,
                 messages=[
                     {"role": "system", "content": "You are a helpful assistant."},
@@ -54,28 +55,27 @@ def generate_code_via_llm(prompt, model, provider, config):
                 temperature=temperature,
                 max_tokens=max_tokens,
                 top_p=top_p,
-                stream=False  # Non-streaming mode
+                stream=True  # Enable streaming
             )
 
-            # Log the full response for debugging
-            logging.debug(f"OpenAI response: {response}")
+            content = ""
+            # Iterate over the streaming responses, directly accessing attributes
+            for chunk in stream:
+                if hasattr(chunk, 'choices') and chunk.choices:
+                    delta_content = chunk.choices[0].delta.content
+                    if delta_content:
+                        content += delta_content
+                        emit('message', {'assistant': delta_content})  # Emit the response chunk
+                        logging.debug(f'Streaming response chunk: {delta_content}')
 
-            # Check response validity
-            if 'choices' in response and response['choices']:
-                content = response['choices'][0]['message']['content']
-                return {'code': content}
-            else:
-                logging.error("No valid choices returned in the response: %s", response)
-                return {'error': 'No valid choices returned in response'}
+            return {'code': content}
 
         elif provider == 'google':
-            # Google API logic remains the same as before
+            # Google API logic as before
             if not model.startswith('models/') and not model.startswith('tunedModels/'):
                 model = 'models/' + model
             genai_model = genai.GenerativeModel(model)
             response = genai_model.generate_content(prompt)
-
-            logging.debug(f"Google response: {response}")
 
             # Check if the response contains valid code parts
             if hasattr(response, 'candidate') and response.candidate.safety_ratings:
@@ -161,6 +161,22 @@ def handle_message(data):
         else:
             emit('message', {'user': message, 'error': code_response['error']})
             logging.error(f'Error generating code: {code_response["error"]}')
+
+    elif provider == 'google':
+        # Handle Google response
+        try:
+            genai_model = genai.GenerativeModel(model)
+            response = genai_model.generate_content(message)
+
+            content = response.text
+            logging.debug(f'Google Response: {content}')
+            
+            emit('message', {'assistant': content})  # Emit Google response
+            emit('message_end')  # Signal the end of the message
+            
+        except Exception as e:
+            logging.error(f'Error with Google: {str(e)}')
+            emit('message', {'error': str(e)})
 
 
 if __name__ == '__main__':
