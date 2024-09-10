@@ -7,7 +7,6 @@ from openai import OpenAI
 import google.generativeai as genai
 from config import Config
 from tools.intent_parser import parse_intent, handle_write_to_file, handle_execute_code
-from tools.code_execution import execute_code
 from tools.file_operations import read_file, write_file
 
 app = Flask(__name__)
@@ -16,7 +15,7 @@ socketio = SocketIO(app)
 
 logging.basicConfig(level=logging.DEBUG)
 
-# Configure OAI GPT
+# Configure OpenAI GPT
 client = OpenAI(api_key=Config.OPENAI_API_KEY)
 
 # Configure Google Gemini
@@ -38,14 +37,13 @@ def upload():
         file.save(filepath)
         return jsonify({'filename': file.filename})
 
-def generate_code_via_llm(prompt, model, provider, config):
+def generate_llm_response(prompt, model, provider, config):
     try:
         temperature = config.get('temperature', Config.TEMPERATURE)
         max_tokens = config.get('maxTokens', Config.MAX_TOKENS)
         top_p = config.get('topP', Config.TOP_P)
 
         if provider == 'openai':
-            # Retaining your usage of client.chat.completions.create() 
             stream = client.chat.completions.create(
                 model=model,
                 messages=[
@@ -55,29 +53,25 @@ def generate_code_via_llm(prompt, model, provider, config):
                 temperature=temperature,
                 max_tokens=max_tokens,
                 top_p=top_p,
-                stream=True  # Enable streaming
+                stream=True
             )
 
             content = ""
-            # Iterate over the streaming responses, directly accessing attributes
             for chunk in stream:
                 if hasattr(chunk, 'choices') and chunk.choices:
                     delta_content = chunk.choices[0].delta.content
                     if delta_content:
                         content += delta_content
-                        emit('message', {'assistant': delta_content})  # Emit the response chunk
+                        emit('message', {'assistant': delta_content})
                         logging.debug(f'Streaming response chunk: {delta_content}')
-
             return {'code': content}
 
         elif provider == 'google':
-            # Google API logic as before
             if not model.startswith('models/') and not model.startswith('tunedModels/'):
                 model = 'models/' + model
             genai_model = genai.GenerativeModel(model)
             response = genai_model.generate_content(prompt)
 
-            # Check if the response contains valid code parts
             if hasattr(response, 'candidate') and response.candidate.safety_ratings:
                 logging.error("Response blocked due to safety ratings")
                 return {'error': 'Response blocked due to safety ratings.'}
@@ -88,8 +82,8 @@ def generate_code_via_llm(prompt, model, provider, config):
             return {'error': 'Unsupported provider'}
 
     except Exception as e:
-        logging.error(f'Error generating code: {str(e)}')
-        return {'error': str(e)}
+        logging.error(f"Error generating response for provider {provider} and model {model}: {str(e)}")
+        return {'error': f"Error with {provider} provider and {model} model: {str(e)}"}
 
 @socketio.on('message')
 def handle_message(data):
@@ -99,50 +93,15 @@ def handle_message(data):
     provider = data['provider']
     config = data.get('config', {})
 
-    # Custom engine handling (if any)
     custom_engine = data.get('customEngine')
     if custom_engine:
         model = custom_engine
 
-    # Handle intent parsing
     intent = parse_intent(message)
     logging.debug(f"Intent: {intent}, Message: {message}, Model: {model}, Provider: {provider}")
 
-    # Handle OpenAI stream
-    if provider == 'openai':
-        try:
-            code_response = generate_code_via_llm(message, model, provider, config)
-            if 'code' in code_response:
-                result = handle_execute_code(message, code_response['code'])
-                emit('message', {'user': message, 'result': result})  # Emit execution result
-                logging.debug(f"Emitting execute_code result: {result}")
-            else:
-                emit('message', {'user': message, 'error': code_response['error']})
-                logging.error(f'Error generating content: {code_response["error"]}')
-
-        except Exception as e:
-            logging.error(f'Error with OpenAI: {str(e)}')
-            emit('message', {'error': str(e)})
-
-    # Handle Google response
-    elif provider == 'google':
-        try:
-            code_response = generate_code_via_llm(message, model, provider, config)
-            if 'code' in code_response:
-                result = handle_execute_code(message, code_response['code'])
-                emit('message', {'user': message, 'result': result})  # Emit execution result
-                logging.debug(f"Emitting execute_code result: {result}")
-            else:
-                emit('message', {'user': message, 'error': code_response['error']})
-                logging.error(f'Error generating content: {code_response["error"]}')
-
-        except Exception as e:
-            logging.error(f'Error with Google: {str(e)}')
-            emit('message', {'error': str(e)})
-
-    # Handle other intents (write to file, execute code, etc.)
     if intent == "write_to_file":
-        content_response = generate_code_via_llm(message, model, provider, config)
+        content_response = generate_llm_response(message, model, provider, config)
         if 'code' in content_response:
             content = content_response['code']
             result = handle_write_to_file(message, content)
@@ -150,10 +109,10 @@ def handle_message(data):
             logging.debug(f"Emitting write_to_file result: {result}")
         else:
             emit('message', {'user': message, 'error': content_response['error']})
-            logging.error(f'Error generating content: {content_response["error"]}')
-    
+            logging.error(f"Error generating content: {content_response['error']}")
+
     elif intent == "execute_code":
-        code_response = generate_code_via_llm(message, model, provider, config)
+        code_response = generate_llm_response(message, model, provider, config)
         if 'code' in code_response:
             result = handle_execute_code(message, code_response['code'])
             emit('message', {'user': message, 'result': result})
@@ -161,23 +120,9 @@ def handle_message(data):
         else:
             emit('message', {'user': message, 'error': code_response['error']})
             logging.error(f'Error generating code: {code_response["error"]}')
-
-    elif provider == 'google':
-        # Handle Google response
-        try:
-            genai_model = genai.GenerativeModel(model)
-            response = genai_model.generate_content(message)
-
-            content = response.text
-            logging.debug(f'Google Response: {content}')
-            
-            emit('message', {'assistant': content})  # Emit Google response
-            emit('message_end')  # Signal the end of the message
-            
-        except Exception as e:
-            logging.error(f'Error with Google: {str(e)}')
-            emit('message', {'error': str(e)})
-
+    
+    else:
+        emit('message', {'error': 'Unknown intent'})
 
 if __name__ == '__main__':
     if not os.path.exists('uploads'):

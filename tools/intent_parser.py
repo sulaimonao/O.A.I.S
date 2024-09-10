@@ -29,13 +29,13 @@ def handle_write_to_file(message, content):
         filename = "text"
     elif "image" in message.lower():
         filename = "image"
-        extension = ".png"  # Placeholder, should be image processing logic
+        extension = ".png"
     elif "audio" in message.lower():
         filename = "audio"
-        extension = ".mp3"  # Placeholder, should be audio processing logic
+        extension = ".mp3"
     elif "data" in message.lower():
         filename = "data"
-        extension = ".csv"  # Placeholder, should be data processing logic
+        extension = ".csv"
 
     full_filename = f"{filename}{extension}"
     result = write_file(full_filename, content)
@@ -43,7 +43,6 @@ def handle_write_to_file(message, content):
     return f"Content has been written to {full_filename}"
 
 def handle_execute_code(message, generated_code):
-    # Detect the language and extract code from the generated response
     match = re.search(r"```(\w+)\s+(.*?)\s+```", generated_code, re.DOTALL)
     if match:
         language = match.group(1).lower()
@@ -52,27 +51,17 @@ def handle_execute_code(message, generated_code):
         language = "text"
         code = generated_code.strip('```').strip()
 
-    # Determine the file extension based on the language
-    extension = {
-        "python": ".py",
-        "bash": ".sh",
-        "javascript": ".js",
-        "text": ".txt"
-    }.get(language, ".txt")
+    language_execution = {
+        "python": execute_code,
+        "bash": execute_bash_code,
+        "javascript": execute_js_code
+    }
 
-    filename = f"output{extension}"
-
-    # Execute the code based on the detected language
-    if language == "python":
-        result = execute_code(code)
-    elif language == "bash":
-        result = execute_bash_code(code)
-    elif language == "javascript":
-        result = execute_js_code(code)
+    if language in language_execution:
+        result = language_execution[language](code)
     else:
-        result = f"Code in {language} language saved to {filename}"
+        result = f"Code in {language} language saved to output.txt"
+        write_file(f"output.txt", code)
 
-    # Write the cleaned code to a file
-    write_file(filename, code)
-    logging.debug(f"Code written to file: {filename}")
+    logging.debug(f"Code execution result: {result}")
     return result
