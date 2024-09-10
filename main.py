@@ -67,10 +67,15 @@ def generate_llm_response(prompt, model, provider, config):
             return {'code': content}
 
         elif provider == 'google':
+            # Ensure that model starts with the correct path format
             if not model.startswith('models/') and not model.startswith('tunedModels/'):
                 model = 'models/' + model
+
             genai_model = genai.GenerativeModel(model)
             response = genai_model.generate_content(prompt)
+
+            # Log the response for debugging
+            logging.debug(f"Google API Response: {response}")
 
             if hasattr(response, 'candidate') and response.candidate.safety_ratings:
                 logging.error("Response blocked due to safety ratings")
@@ -84,7 +89,7 @@ def generate_llm_response(prompt, model, provider, config):
     except Exception as e:
         logging.error(f"Error generating response for provider {provider} and model {model}: {str(e)}")
         return {'error': f"Error with {provider} provider and {model} model: {str(e)}"}
-
+    
 @socketio.on('message')
 def handle_message(data):
     data = json.loads(data)
@@ -93,14 +98,25 @@ def handle_message(data):
     provider = data['provider']
     config = data.get('config', {})
 
+    # Check for a custom engine
     custom_engine = data.get('customEngine')
     if custom_engine:
         model = custom_engine
 
+    # Parse intent for every message, regardless of provider
     intent = parse_intent(message)
     logging.debug(f"Intent: {intent}, Message: {message}, Model: {model}, Provider: {provider}")
 
-    if intent == "write_to_file":
+    # If the intent is 'api_request', proceed with the API request for both OpenAI and Google
+    if intent == "api_request":
+        code_response = generate_llm_response(message, model, provider, config)
+        if 'code' in code_response:
+            emit('message', {'user': message, 'result': code_response['code']})
+        else:
+            emit('message', {'user': message, 'error': code_response['error']})
+    
+    # Handle tool-specific intents like 'write_to_file' and 'execute_code'
+    elif intent == "write_to_file":
         content_response = generate_llm_response(message, model, provider, config)
         if 'code' in content_response:
             content = content_response['code']
@@ -109,7 +125,6 @@ def handle_message(data):
             logging.debug(f"Emitting write_to_file result: {result}")
         else:
             emit('message', {'user': message, 'error': content_response['error']})
-            logging.error(f"Error generating content: {content_response['error']}")
 
     elif intent == "execute_code":
         code_response = generate_llm_response(message, model, provider, config)
