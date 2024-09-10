@@ -130,10 +130,12 @@ $(document).ready(function() {
             if (data.assistant) {
                 botResponseBuffer += data.assistant;
 
-                if ($('#chat-history .bot-response').last().length === 0) {
+                // Ensure a new response container is created for each bot response
+                if ($('#chat-history .bot-response').last().length === 0 || $('#chat-history .bot-response').last().text() !== botResponseBuffer) {
                     $('#chat-history').append('<div class="bot-response"></div>');
                 }
 
+                // Update the last bot-response div with the new chunk
                 $('#chat-history .bot-response').last().text(botResponseBuffer);
             }
 
@@ -141,8 +143,8 @@ $(document).ready(function() {
         }
     });
 
-    // Reset bot response buffer when message stream ends
+    // Reset bot response buffer when message ends
     socket.on('message_end', function() {
-        botResponseBuffer = "";  // Reset for next message
+        botResponseBuffer = "";  // Reset buffer for next message
     });
 });
