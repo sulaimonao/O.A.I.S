@@ -1,0 +1,8 @@
+
+.env
+.DS_Store
+.env copy
+.env
+/__pycache__
+*.py
+/tools/__pycache__
