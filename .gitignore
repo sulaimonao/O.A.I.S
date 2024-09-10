@@ -7,3 +7,5 @@
 *.py
 /tools/__pycache__
 *.png
+.env
+.DS_Store
