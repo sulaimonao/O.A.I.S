@@ -4,28 +4,36 @@ $(document).ready(function() {
     var selectedProvider = '';  // Default provider
     var botResponseBuffer = "";  // Buffer to store bot response chunks
 
+    // Centralized model options
+    const modelsByProvider = {
+        'openai': ['gpt-4o', 'gpt-4o-mini'],
+        'google': ['gemini-1.5-pro', 'gemini-1.5-flash']
+    };
+
     // Function to update model options based on provider
     function updateModelOptions(provider) {
-        var modelOptions = '';
-        if (provider === 'openai') {
-            modelOptions += '<option value="gpt-4o">GPT-4o</option>';
-            modelOptions += '<option value="gpt-4o-mini">GPT-4o-mini</option>';
-        } else if (provider === 'google') {
-            modelOptions += '<option value="gemini-1.5-pro">Gemini 1.5 Pro</option>';
-            modelOptions += '<option value="gemini-1.5-flash">Gemini 1.5 Flash</option>';
-        }
-        $('#model-select').html(modelOptions);
-        $('#custom-engine').hide();
-        $('#model-select').change();
+        const modelOptions = modelsByProvider[provider] || [];
+        let optionsHtml = '';
+        modelOptions.forEach(model => {
+            optionsHtml += `<option value="${model}">${model}</option>`;
+        });
+        $('#model-select').html(optionsHtml);
     }
 
-    // Initialize model options
+    // Initialize model options based on provider
     updateModelOptions($('#provider-select').val());
 
-    // Initialize temperature, maxTokens, and topP with default values from config.py (as an example)
-    $('#temperature').val(0.8);  // Default from config.py
-    $('#max-tokens').val(4000);  // Default from config.py
-    $('#top-p').val(1.0);        // Default from config.py
+    // Default config values
+    const defaultConfig = {
+        temperature: 0.8,
+        maxTokens: 4000,
+        topP: 1.0
+    };
+
+    // Initialize temperature, max tokens, and top-p
+    $('#temperature').val(defaultConfig.temperature);
+    $('#max-tokens').val(defaultConfig.maxTokens);
+    $('#top-p').val(defaultConfig.topP);
 
     // Update model options when provider changes
     $('#provider-select').change(function() {
@@ -49,66 +57,66 @@ $(document).ready(function() {
         alert('Settings saved! Using provider: ' + selectedProvider + ', model: ' + selectedModel);
     });
 
-    // Submit the form with the user's message
-$('form').submit(function(event) {
-    event.preventDefault();
-    const message = $('#user-input').val();
-    const fileInput = $('#file-input')[0];
+    // Submit form and send message
+    $('form').submit(function(event) {
+        event.preventDefault();
+        const message = $('#user-input').val();
+        const fileInput = $('#file-input')[0];
 
-    // Fetch config values (temperature, maxTokens, topP) from user input and ensure they are numbers
-    const config = {
-        temperature: parseFloat($('#temperature').val()) || 0.8,  // Convert to float
-        maxTokens: parseInt($('#max-tokens').val(), 10) || 4000,  // Convert to integer
-        topP: parseFloat($('#top-p').val()) || 1.0  // Convert to float
-    };
+        // Fetch config values (temperature, maxTokens, topP) from user input
+        const config = {
+            temperature: parseFloat($('#temperature').val()) || defaultConfig.temperature,
+            maxTokens: parseInt($('#max-tokens').val(), 10) || defaultConfig.maxTokens,
+            topP: parseFloat($('#top-p').val()) || defaultConfig.topP
+        };
 
-    // Append the user's message to the chat
-    $('#chat-history').append('<div class="user-message">' + message + '</div>');
+        // Append the user's message to the chat
+        $('#chat-history').append('<div class="user-message">' + message + '</div>');
 
-    if (fileInput.files.length > 0) {
-        const file = fileInput.files[0];
-        const formData = new FormData();
-        const customEngine = $('#custom-engine').val();
+        // Handle file upload and message sending
+        if (fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            const customEngine = $('#custom-engine').val();
 
-        let modelToUse = selectedModel;
-        if (selectedModel === 'custom') {
-            modelToUse = customEngine;
-        }
-
-        formData.append('file', file);
-        $.ajax({
-            url: '/upload',
-            type: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
-            success: function(response) {
-                if (response.error) {
-                    alert(response.error);
-                } else {
-                    socket.send(JSON.stringify({
-                        message: message, 
-                        model: selectedModel, 
-                        provider: selectedProvider, 
-                        filename: response.filename, 
-                        config: config  // Send config to the backend
-                    }));
-                    $('#user-input').val('');
-                    $('#file-input').val('');
-                }
+            let modelToUse = selectedModel;
+            if (selectedModel === 'custom') {
+                modelToUse = customEngine;
             }
-        });
-    } else {
-        socket.send(JSON.stringify({
-            message: message, 
-            model: selectedModel, 
-            provider: selectedProvider,
-            config: config  // Send config to the backend
-        }));
-        $('#user-input').val('');
-    }
-    return false;
-});
+
+            formData.append('file', file);
+            $.ajax({
+                url: '/upload',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if (response.error) {
+                        alert(response.error);
+                    } else {
+                        socket.send(JSON.stringify({
+                            message: message,
+                            model: modelToUse,
+                            provider: selectedProvider,
+                            filename: response.filename,
+                            config: config
+                        }));
+                        $('#user-input').val(''); // Reset input
+                        $('#file-input').val('');  // Reset file input
+                    }
+                }
+            });
+        } else {
+            socket.send(JSON.stringify({
+                message: message,
+                model: selectedModel,
+                provider: selectedProvider,
+                config: config
+            }));
+            $('#user-input').val(''); // Reset input
+        }
+    });
 
     // Handle streaming response chunks
     socket.on('message', function(data) {
@@ -120,24 +128,21 @@ $('form').submit(function(event) {
             }
 
             if (data.assistant) {
-                // Append the streaming response chunks to the botResponseBuffer
                 botResponseBuffer += data.assistant;
 
-                // Check if a bot-response div exists; if not, create it
-                if (!$('#chat-history .bot-response').last().length) {
-                    $('#chat-history').append('<div class="bot-response">' + botResponseBuffer + '</div>');
-                } else {
-                    // Update the last bot-response div with the new chunk
-                    $('#chat-history .bot-response').last().text(botResponseBuffer);
+                if ($('#chat-history .bot-response').last().length === 0) {
+                    $('#chat-history').append('<div class="bot-response"></div>');
                 }
+
+                $('#chat-history .bot-response').last().text(botResponseBuffer);
             }
 
-            $('#chat-history').scrollTop($('#chat-history')[0].scrollHeight);
+            $('#chat-history').scrollTop($('#chat-history')[0].scrollHeight);  // Scroll to bottom
         }
     });
 
-    // Reset the bot response buffer when the response ends
+    // Reset bot response buffer when message stream ends
     socket.on('message_end', function() {
-        botResponseBuffer = "";  // Reset the buffer for the next message
+        botResponseBuffer = "";  // Reset for next message
     });
 });
