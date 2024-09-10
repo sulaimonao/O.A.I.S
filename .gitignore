@@ -9,3 +9,7 @@
 *.png
 .env
 .DS_Store
+/shared_venv/bin
+/shared_venv/lib
+*.cfg
+*.1
