@@ -120,28 +120,30 @@ $(document).ready(function() {
 
     // Handle streaming response chunks
     socket.on('message', function(data) {
+        console.log('Received message data:', data);  // Add this to debug
+    
         if (data.error) {
             alert(data.error);
         } else {
             if (data.user) {
                 $('#chat-history').append('<div class="user-message">' + data.user + '</div>');
             }
-
+    
             if (data.assistant) {
                 botResponseBuffer += data.assistant;
-
+    
                 // Ensure a new response container is created for each bot response
                 if ($('#chat-history .bot-response').last().length === 0 || $('#chat-history .bot-response').last().text() !== botResponseBuffer) {
                     $('#chat-history').append('<div class="bot-response"></div>');
                 }
-
+    
                 // Update the last bot-response div with the new chunk
                 $('#chat-history .bot-response').last().text(botResponseBuffer);
             }
-
+    
             $('#chat-history').scrollTop($('#chat-history')[0].scrollHeight);  // Scroll to bottom
         }
-    });
+    });    
 
     // Reset bot response buffer when message ends
     socket.on('message_end', function() {
