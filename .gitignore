@@ -13,3 +13,4 @@
 /shared_venv/lib
 *.cfg
 *.1
+.env
