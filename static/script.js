@@ -1,3 +1,46 @@
+$('#create-profile').click(function() {
+    const username = prompt("Enter new profile name:");
+    if (username) {
+        $.ajax({
+            url: '/create_profile',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ username: username }),
+            success: function(response) {
+                if (response.success) {
+                    alert('Profile created successfully!');
+                    $('#profile-select').append(`<option value="${username}">${username}</option>`);
+                } else {
+                    alert(response.error);
+                }
+            },
+            error: function() {
+                alert('Error creating profile.');
+            }
+        });
+    }
+});
+
+$('#memory-toggle').change(function() {
+    const memoryEnabled = $(this).is(':checked');
+    $.ajax({
+        url: '/toggle_memory',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ memory_enabled: memoryEnabled }),
+        success: function(response) {
+            if (response.success) {
+                alert('Memory toggled successfully!');
+            } else {
+                alert(response.error);
+            }
+        },
+        error: function() {
+            alert('Error toggling memory.');
+        }
+    });
+});
+
 $(document).ready(function() {
     var socket = io();
     var selectedModel = '';  // Default model
