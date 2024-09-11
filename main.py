@@ -100,14 +100,16 @@ def handle_message(data):
 
     # Use GPT-2 to parse intent
     intent = parse_intent_with_gpt2(message)
-    logging.debug(f"Intent: {intent}, Message: {message}, Model: {model}, Provider: {provider}")
+    logging.debug(f"GPT-2 parsed intent: {intent}")  # Log the parsed intent
     
     # Handle intent with task execution
     if intent in ["create_folder", "delete_file", "create_file", "delete_folder", "execute_python_code", "execute_bash_code", "execute_js_code"]:
+        logging.debug(f"Executing task based on GPT-2 parsed intent: {intent}")
         result = handle_task(intent, message)
         emit('message', {'response': result})
     else:
         # Fallback to API request if no specific intent is recognized
+        logging.debug(f"Falling back to API request for message: {message}")
         code_response = generate_llm_response(message, model, provider, config)
         if 'code' in code_response:
             emit('message', {'user': message, 'assistant': code_response['code']})

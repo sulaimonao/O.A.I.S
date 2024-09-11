@@ -17,3 +17,7 @@
 repo_scan_overview.json
 /shared_venv
 /models/__pycache__
+/models/local_gpt2
+/models/local_gpt2
+/models/local_gpt2
+models/local_gpt2/model.safetensors
