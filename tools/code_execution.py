@@ -57,6 +57,35 @@ def execute_code(code):
             logging.error(f"Error during code execution: {e.stderr}")
             return e.stderr
 
+def create_folder(folder_name):
+    if not os.path.exists(folder_name):
+        os.makedirs(folder_name)
+        return f"Folder '{folder_name}' created."
+    return f"Folder '{folder_name}' already exists."
+
+def delete_folder(folder_name):
+    if os.path.exists(folder_name):
+        os.rmdir(folder_name)
+        return f"Folder '{folder_name}' deleted."
+    return f"Folder '{folder_name}' does not exist."
+
+def create_file(file_name, content=""):
+    file_path = os.path.join(workspace_dir, file_name)
+    try:
+        with open(file_path, 'w') as file:
+            file.write(content)
+        return f"File '{file_name}' created with content."
+    except Exception as e:
+        logging.error(f"Error creating file '{file_name}': {e}")
+        return f"Error creating file '{file_name}'."
+
+def delete_file(file_name):
+    file_path = os.path.join(workspace_dir, file_name)
+    if os.path.exists(file_path):
+        os.remove(file_path)
+        return f"File '{file_name}' deleted."
+    return f"File '{file_name}' does not exist."
+
 def execute_bash_code(code):
     exec_script = os.path.join(workspace_dir, f'exec_code_{uuid.uuid4().hex}.sh')
 

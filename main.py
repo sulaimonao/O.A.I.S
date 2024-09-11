@@ -6,7 +6,7 @@ from flask_socketio import SocketIO, emit
 from openai import OpenAI
 import google.generativeai as genai
 from config import Config
-from tools.intent_parser import parse_intent, handle_write_to_file, handle_execute_code
+from tools.intent_parser import parse_intent, handle_task
 from tools.file_operations import read_file, write_file
 
 app = Flask(__name__)
@@ -85,11 +85,10 @@ def generate_llm_response(prompt, model, provider, config):
                 logging.error("No candidates returned in Google API response.")
                 return {'error': 'No valid response from Google API'}
 
-
     except Exception as e:
         logging.error(f"Error generating response for provider {provider} and model {model}: {str(e)}")
         return {'error': f"Error with {provider} provider and {model} model: {str(e)}"}
-    
+
 @socketio.on('message')
 def handle_message(data):
     data = json.loads(data)
@@ -111,7 +110,7 @@ def handle_message(data):
     if intent == "api_request":
         code_response = generate_llm_response(message, model, provider, config)
         if 'code' in code_response:
-            emit('message', {'user': message, 'assistant': code_response['code']})  # Ensure 'assistant' is sent
+            emit('message', {'user': message, 'assistant': code_response['code']})
         else:
             emit('message', {'user': message, 'error': code_response['error']})
 
@@ -120,7 +119,7 @@ def handle_message(data):
         content_response = generate_llm_response(message, model, provider, config)
         if 'code' in content_response:
             content = content_response['code']
-            result = handle_write_to_file(message, content)
+            result = handle_task('write_to_file', message)
             emit('message', {'user': message, 'result': result})
             logging.debug(f"Emitting write_to_file result: {result}")
         else:
@@ -129,13 +128,13 @@ def handle_message(data):
     elif intent == "execute_code":
         code_response = generate_llm_response(message, model, provider, config)
         if 'code' in code_response:
-            result = handle_execute_code(message, code_response['code'])
+            result = handle_task('execute_code', message)
             emit('message', {'user': message, 'result': result})
             logging.debug(f"Emitting execute_code result: {result}")
         else:
             emit('message', {'user': message, 'error': code_response['error']})
             logging.error(f'Error generating code: {code_response["error"]}')
-    
+
     else:
         emit('message', {'error': 'Unknown intent'})
 

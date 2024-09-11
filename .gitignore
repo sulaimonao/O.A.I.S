@@ -14,3 +14,5 @@
 *.cfg
 *.1
 .env
+repo_scan_overview.json
+/shared_venv
