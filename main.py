@@ -62,6 +62,13 @@ def toggle_memory():
         return jsonify({'success': True})
     return jsonify({'error': 'Invalid memory status'}), 400
 
+@app.route('/get_profiles', methods=['GET'])
+def get_profiles():
+    """Fetch all user profiles from the database."""
+    users = User.query.all()
+    profile_list = [{"id": user.id, "username": user.username} for user in users]
+    return jsonify(profile_list)
+
 @app.route('/create_profile', methods=['POST'])
 def create_profile():
     data = request.get_json()
@@ -90,6 +97,58 @@ def create_or_fetch_session(user_id):
         db.session.add(session)
         db.session.commit()
     return session.id
+
+def generate_llm_response(prompt, model, provider, config):
+    try:
+        temperature = config.get('temperature', Config.TEMPERATURE)
+        max_tokens = config.get('maxTokens', Config.MAX_TOKENS)
+        top_p = config.get('topP', Config.TOP_P)
+
+        if provider == 'openai':
+            stream = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=temperature,
+                max_tokens=max_tokens,
+                top_p=top_p,
+                stream=True
+            )
+
+            content = ""
+            for chunk in stream:
+                if hasattr(chunk, 'choices') and chunk.choices:
+                    delta_content = chunk.choices[0].delta.content
+                    if delta_content:
+                        content += delta_content
+                        emit('message', {'assistant': delta_content})
+                        logging.debug(f'Streaming response chunk: {delta_content}')
+            return {'code': content}
+
+        elif provider == 'google':
+            # Ensure that model starts with the correct path format
+            if not model.startswith('models/') and not model.startswith('tunedModels/'):
+                model = 'models/' + model
+
+            genai_model = genai.GenerativeModel(model)
+            response = genai_model.generate_content(prompt)
+
+            # Log the response for debugging
+            logging.debug(f"Google API Response: {response}")
+
+            if hasattr(response, 'candidates') and response.candidates:
+                # Return the response content properly
+                response_text = response.candidates[0].content.parts[0].text
+                return {'code': response_text}
+            else:
+                logging.error("No candidates returned in Google API response.")
+                return {'error': 'No valid response from Google API'}
+
+    except Exception as e:
+        logging.error(f"Error generating response for provider {provider} and model {model}: {str(e)}")
+        return {'error': f"Error with {provider} provider and {model} model: {str(e)}"}
 
 @socketio.on('message')
 def handle_message(data):

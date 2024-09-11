@@ -53,33 +53,41 @@ def parse_intent(message):
 
 def handle_task(intent, message):
     """Handle task based on GPT-2 inferred intent."""
-    
+    logging.debug(f"Handling task: {intent} with message: {message}")
+
     if intent == "create_folder":
         folder_name = extract_name_from_message(message)
+        logging.debug(f"Creating folder: {folder_name}")
         return create_folder(folder_name)
 
     if intent == "delete_folder":
         folder_name = extract_name_from_message(message)
+        logging.debug(f"Deleting folder: {folder_name}")
         return delete_folder(folder_name)
 
     if intent == "create_file":
         file_name = extract_name_from_message(message)
+        logging.debug(f"Creating file: {file_name}")
         return create_file(file_name)
 
     if intent == "delete_file":
         file_name = extract_name_from_message(message)
+        logging.debug(f"Deleting file: {file_name}")
         return delete_file(file_name)
 
     if intent == "execute_python_code":
         code = extract_code_from_message(message)
+        logging.debug(f"Executing Python code: {code}")
         return execute_code(code)
 
     if intent == "execute_bash_code":
         code = extract_code_from_message(message)
+        logging.debug(f"Executing Bash code: {code}")
         return execute_bash_code(code)
 
     if intent == "execute_js_code":
         code = extract_code_from_message(message)
+        logging.debug(f"Executing JS code: {code}")
         return execute_js_code(code)
 
     return "Unknown intent."
