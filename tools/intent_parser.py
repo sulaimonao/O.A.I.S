@@ -14,6 +14,18 @@ from .code_execution import (
 
 logging.basicConfig(level=logging.DEBUG)
 
+def parse_intent_with_gpt2(message):
+    """Use GPT-2 to analyze the message and determine if an action is required."""
+    restructured_message = gpt2_restructure_prompt(message)
+
+    if "create" in restructured_message.lower() and "folder" in restructured_message.lower():
+        return "create_folder"
+    if "delete" in restructured_message.lower() and "file" in restructured_message.lower():
+        return "delete_file"
+    # Additional command checks
+
+    return "api_request"  # Default to API request if no action is identified
+
 def parse_intent(message):
     """Parse the message to check if it should trigger tool usage."""
     logging.debug(f"Parsing intent for message: {message.lower()}")

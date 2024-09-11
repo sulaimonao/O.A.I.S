@@ -6,7 +6,8 @@ from flask_socketio import SocketIO, emit
 from openai import OpenAI
 import google.generativeai as genai
 from config import Config
-from tools.intent_parser import parse_intent, handle_task
+from tools.intent_parser import parse_intent_with_gpt2, handle_task
+from models.gpt2_observer import gpt2_restructure_prompt
 from tools.file_operations import read_file, write_file
 
 app = Flask(__name__)
@@ -97,46 +98,21 @@ def handle_message(data):
     provider = data['provider']
     config = data.get('config', {})
 
-    # Check for a custom engine
-    custom_engine = data.get('customEngine')
-    if custom_engine:
-        model = custom_engine
-
-    # Parse intent for every message, regardless of provider
-    intent = parse_intent(message)
+    # Use GPT-2 to parse intent
+    intent = parse_intent_with_gpt2(message)
     logging.debug(f"Intent: {intent}, Message: {message}, Model: {model}, Provider: {provider}")
-
-    # If the intent is 'api_request', proceed with the API request for both OpenAI and Google
-    if intent == "api_request":
+    
+    # Handle intent with task execution
+    if intent in ["create_folder", "delete_file", "create_file", "delete_folder", "execute_python_code", "execute_bash_code", "execute_js_code"]:
+        result = handle_task(intent, message)
+        emit('message', {'response': result})
+    else:
+        # Fallback to API request if no specific intent is recognized
         code_response = generate_llm_response(message, model, provider, config)
         if 'code' in code_response:
             emit('message', {'user': message, 'assistant': code_response['code']})
         else:
             emit('message', {'user': message, 'error': code_response['error']})
-
-    # Handle tool-specific intents like 'write_to_file' and 'execute_code'
-    elif intent == "write_to_file":
-        content_response = generate_llm_response(message, model, provider, config)
-        if 'code' in content_response:
-            content = content_response['code']
-            result = handle_task('write_to_file', message)
-            emit('message', {'user': message, 'result': result})
-            logging.debug(f"Emitting write_to_file result: {result}")
-        else:
-            emit('message', {'user': message, 'error': content_response['error']})
-
-    elif intent == "execute_code":
-        code_response = generate_llm_response(message, model, provider, config)
-        if 'code' in code_response:
-            result = handle_task('execute_code', message)
-            emit('message', {'user': message, 'result': result})
-            logging.debug(f"Emitting execute_code result: {result}")
-        else:
-            emit('message', {'user': message, 'error': code_response['error']})
-            logging.error(f'Error generating code: {code_response["error"]}')
-
-    else:
-        emit('message', {'error': 'Unknown intent'})
 
 if __name__ == '__main__':
     if not os.path.exists('uploads'):
