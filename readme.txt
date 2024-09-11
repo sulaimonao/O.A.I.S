@@ -1,8 +1,8 @@
 Create the Database: Run the following command to create the SQLite database:
 ```bash
-flask --app main.py db init
-flask --app main.py db migrate
-flask --app main.py db upgrade
+flask db init  # Only if the migrations folder doesn't exist
+flask db migrate
+flask db upgrade
 
 ```
 numpy error

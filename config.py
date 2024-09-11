@@ -10,8 +10,9 @@ class Config:
     OPENAI_MODEL = "gpt-4o"  # Default OpenAI model
     GOOGLE_MODEL = "models/gemini-1.5-pro"  # Default Google Gemini model
     TEMPERATURE = 0.7
-    MAX_TOKENS = 50000
+    MAX_TOKENS = 5000
     TOP_P = 1.0
     SYSTEM_PROMPT = "You are a helpful assistant."
-    SQLALCHEMY_DATABASE_URI = os.getenv("SQLALCHEMY_DATABASE_URI")  # Main DB location
-    SQLALCHEMY_TRACK_MODIFICATIONS = False #for optimization
+    SQLALCHEMY_DATABASE_URI = os.getenv('SQLALCHEMY_DATABASE_URI', 'sqlite:///data/oais.db')
+    SQLALCHEMY_TRACK_MODIFICATIONS = False # for optimization 
+    SECRET_KEY = os.getenv('SECRET_KEY', 'default_secret_key')
