@@ -22,3 +22,4 @@ repo_scan_overview.json
 /models/local_gpt2
 models/local_gpt2/model.safetensors
 /data/__pycache__
+project_overview.json
