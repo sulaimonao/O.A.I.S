@@ -13,3 +13,5 @@ class Config:
     MAX_TOKENS = 50000
     TOP_P = 1.0
     SYSTEM_PROMPT = "You are a helpful assistant."
+    SQLALCHEMY_DATABASE_URI = os.getenv("SQLALCHEMY_DATABASE_URI")  # Main DB location
+    SQLALCHEMY_TRACK_MODIFICATIONS = False #for optimization
