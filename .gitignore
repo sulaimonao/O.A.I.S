@@ -16,3 +16,4 @@
 .env
 repo_scan_overview.json
 /shared_venv
+/models/__pycache__

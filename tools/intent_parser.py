@@ -1,5 +1,6 @@
 import logging
 import re
+from models.gpt2_observer import gpt2_restructure_prompt
 from .file_operations import write_file, read_file
 from .code_execution import (
     execute_code,
@@ -39,7 +40,8 @@ def parse_intent(message):
     return "api_request"
 
 def handle_task(intent, message):
-    """Handle task based on intent."""
+    """Handle task based on GPT-2 inferred intent."""
+    
     if intent == "create_folder":
         folder_name = extract_name_from_message(message)
         return create_folder(folder_name)
@@ -68,7 +70,7 @@ def handle_task(intent, message):
         code = extract_code_from_message(message)
         return execute_js_code(code)
 
-    return "Invalid intent."
+    return "Unknown intent."
 
 def extract_name_from_message(message):
     """Extract file or folder name from the message."""
