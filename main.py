@@ -44,7 +44,7 @@ def gpt2_interact():
     input_text = data.get("input_text", "")
     try:
         inputs = gpt2_tokenizer(input_text, return_tensors='pt')
-        outputs = gpt2_model.generate(**inputs)
+        outputs = gpt2_model.generate(**inputs, max_new_tokens=100)
         decoded_output = gpt2_tokenizer.decode(outputs[0], skip_special_tokens=True)
         return jsonify({"response": decoded_output})
     except Exception as e:
@@ -116,7 +116,6 @@ def get_settings():
         'memory_enabled': memory_enabled
     })
 
-
 def init_user(username):
     user = User.query.filter_by(username=username).first()
     if not user:
@@ -126,6 +125,9 @@ def init_user(username):
     return user
 
 def create_or_fetch_session(user_id):
+    if not user_id:
+        raise ValueError("User ID is required to create or fetch session.")
+    
     session = Session.query.filter_by(user_id=user_id, start_time=datetime.utcnow().date()).first()
     if not session:
         session = Session(user_id=user_id, topic="Default", model_used="gpt-2")
@@ -134,12 +136,15 @@ def create_or_fetch_session(user_id):
     return session.id
 
 def generate_llm_response(prompt, model, provider, config):
+    logging.debug(f"Generating response using model {model} from provider {provider} with prompt: {prompt}")
+
     try:
         temperature = config.get('temperature', Config.TEMPERATURE)
         max_tokens = config.get('maxTokens', Config.MAX_TOKENS)
         top_p = config.get('topP', Config.TOP_P)
 
         if provider == 'openai':
+            logging.debug('Using OpenAI model')
             stream = client.chat.completions.create(
                 model=model,
                 messages=[
@@ -163,6 +168,7 @@ def generate_llm_response(prompt, model, provider, config):
             return {'code': content}
 
         elif provider == 'google':
+            logging.debug('Using Google model')
             if not model.startswith('models/') and not model.startswith('tunedModels/'):
                 model = 'models/' + model
 
@@ -175,17 +181,24 @@ def generate_llm_response(prompt, model, provider, config):
             else:
                 return {'error': 'No valid response from Google API'}
 
+        elif provider == 'local':
+            logging.debug('Using Local GPT-2 model')
+            inputs = gpt2_tokenizer(prompt, return_tensors='pt')
+            outputs = gpt2_model.generate(**inputs, max_new_tokens=100)
+            decoded_output = gpt2_tokenizer.decode(outputs[0], skip_special_tokens=True)
+            return {'code': decoded_output}
+
     except Exception as e:
-        logging.error(f"Error generating response for provider {provider} and model {model}: {str(e)}")
-        return {'error': f"Error with {provider} provider and {model} model: {str(e)}"}
+        logging.error(f"Error generating response with provider {provider} and model {model}: {str(e)}")
+        return {'error': f"Error generating response with {provider} and {model}: {str(e)}"}
 
 @socketio.on('message')
 def handle_message(data):
     data = json.loads(data)
     message = data['message']
-    model = data.get('model') or Config.OPENAI_MODEL
-    provider = data['provider']
-    config = data.get('config', {})
+    model = data.get('model') or session.get('model', Config.OPENAI_MODEL)
+    provider = data.get('provider') or session.get('provider', 'openai')
+    config = data.get('config', {})  # Default to empty config if not provided
 
     intent = parse_intent_with_gpt2(message)
 
