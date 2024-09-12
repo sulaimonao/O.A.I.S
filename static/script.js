@@ -175,6 +175,9 @@ document.addEventListener('DOMContentLoaded', function() {
         alert('GPT-2 settings saved successfully!');
     });
 
+    // Variable to keep track of the current assistant message element
+    let currentAssistantMessageElement = null;
+
     // Socket.IO chat functionality
     const chatForm = document.getElementById('chat-form');
     chatForm.addEventListener('submit', function(event) {
@@ -198,30 +201,68 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Add user's message to chat history
         const chatHistory = document.getElementById('chat-history');
-        chatHistory.innerHTML += `<div class="user-message"><strong>You:</strong> ${message}</div>`;
+        const userMessageElement = document.createElement('div');
+        userMessageElement.classList.add('user-message');
+        userMessageElement.innerHTML = `<strong>You:</strong> ${message}`;
+        chatHistory.appendChild(userMessageElement);
         chatHistory.scrollTop = chatHistory.scrollHeight;
 
+        // Clear the message input
         messageInput.value = '';
+
+        // Reset the current assistant message element
+        currentAssistantMessageElement = null;
     });
 
     // Handle incoming messages from the server
     socket.on('message', function(data) {
         const chatHistory = document.getElementById('chat-history');
+
         if (data.assistant) {
-            chatHistory.innerHTML += `<div class="assistant-message"><strong>Assistant:</strong> ${data.assistant}</div>`;
+            if (!currentAssistantMessageElement) {
+                // Create a new assistant message element
+                currentAssistantMessageElement = document.createElement('div');
+                currentAssistantMessageElement.classList.add('assistant-message');
+                currentAssistantMessageElement.innerHTML = '<strong>Assistant:</strong> ';
+                chatHistory.appendChild(currentAssistantMessageElement);
+            }
+            // Append the new chunk to the assistant message
+            currentAssistantMessageElement.innerHTML += data.assistant;
         }
+
         if (data.error) {
-            chatHistory.innerHTML += `<div class="error-message"><strong>Error:</strong> ${data.error}</div>`;
+            const errorMessage = document.createElement('div');
+            errorMessage.classList.add('error-message');
+            errorMessage.innerHTML = `<strong>Error:</strong> ${data.error}`;
+            chatHistory.appendChild(errorMessage);
         }
+
         if (data.feedback_prompt) {
-            chatHistory.innerHTML += `<div class="assistant-message"><strong>Assistant:</strong> ${data.feedback_prompt}</div>`;
+            const feedbackMessage = document.createElement('div');
+            feedbackMessage.classList.add('assistant-message');
+            feedbackMessage.innerHTML = `<strong>Assistant:</strong> ${data.feedback_prompt}`;
+            chatHistory.appendChild(feedbackMessage);
         }
+
         if (data.memory) {
-            chatHistory.innerHTML += `<div class="assistant-message"><strong>Memory:</strong> ${data.memory}</div>`;
+            const memoryMessage = document.createElement('div');
+            memoryMessage.classList.add('assistant-message');
+            memoryMessage.innerHTML = `<strong>Memory:</strong> ${data.memory}`;
+            chatHistory.appendChild(memoryMessage);
         }
+
         if (data.response) {
-            chatHistory.innerHTML += `<div class="assistant-message"><strong>Assistant:</strong> ${data.response}</div>`;
+            const responseMessage = document.createElement('div');
+            responseMessage.classList.add('assistant-message');
+            responseMessage.innerHTML = `<strong>Assistant:</strong> ${data.response}`;
+            chatHistory.appendChild(responseMessage);
         }
+
+        if (data.done) {
+            // Streaming is done
+            currentAssistantMessageElement = null;
+        }
+
         chatHistory.scrollTop = chatHistory.scrollHeight;
     });
 });

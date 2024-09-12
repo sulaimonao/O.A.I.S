@@ -258,9 +258,11 @@ def handle_message(data):
     else:
         code_response = generate_llm_response(message, model, provider, config)
         if 'code' in code_response:
-            emit('message', {'user': message, 'assistant': code_response['code']})
+            if provider != 'openai':
+                # Emit assistant message only if not already streamed
+                emit('message', {'assistant': code_response['code']})
         else:
-            emit('message', {'user': message, 'error': code_response['error']})
+            emit('message', {'error': code_response['error']})
 
     if intent == "retrieve_memory":
         memory = retrieve_memory(user_id)
