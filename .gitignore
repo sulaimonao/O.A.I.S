@@ -25,3 +25,4 @@ models/local_gpt2/model.safetensors
 project_overview.json
 .DS_Store
 .env
+.env
