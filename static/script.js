@@ -56,7 +56,9 @@ document.addEventListener('DOMContentLoaded', function() {
     fetch('/api/gpt2_status')
     .then(response => response.json())
     .then(data => {
+        // Update status element
         const statusElement = document.getElementById('gpt2-status');
+
         if (data.status === 'operational') {
             statusElement.textContent = 'Status: Operational';
             statusElement.classList.add('status-success');
@@ -64,18 +66,21 @@ document.addEventListener('DOMContentLoaded', function() {
             statusElement.textContent = 'Status: Error - ' + data.error;
             statusElement.classList.add('status-error');
         }
+    })
+    .catch(error => {
+        console.error('Error fetching GPT-2 status:', error);
     });
 
     // Test GPT-2 model interaction
     document.getElementById('test-gpt2-model').addEventListener('click', function() {
-        const prompt = prompt("Enter a prompt to test GPT-2:");
-        if (prompt) {
+        const promptText = prompt("Enter a prompt to test GPT-2:");
+        if (promptText) {
             fetch('/api/gpt2_interact', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ input_text: prompt })
+                body: JSON.stringify({ input_text: promptText })
             })
             .then(response => response.json())
             .then(data => {
@@ -100,7 +105,7 @@ document.addEventListener('DOMContentLoaded', function() {
             models = ['gpt-4o', 'gpt-4o-mini'];
         } else if (provider === 'google') {
             models = ['gemini-1.5-pro', 'gemini-1.5-flash'];
-        } else if (provider === 'local' || provider === 'gpt-2-local') {
+        } else if (provider === 'local') {
             models = ['gpt-2-local'];
         }
         modelSelect.innerHTML = models.map(model => `<option value="${model}">${model}</option>`).join('');
@@ -166,6 +171,7 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('Please enter a valid number for Max Tokens.');
             return;
         }
+        // Save the maxTokens value as needed
         alert('GPT-2 settings saved successfully!');
     });
 
