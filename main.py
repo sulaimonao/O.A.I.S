@@ -3,6 +3,7 @@ import json
 import logging
 from flask import Flask, render_template, request, jsonify, session  # Added session
 from flask_socketio import SocketIO, emit
+from flask_session import Session
 from openai import OpenAI
 import google.generativeai as genai
 from config import Config
@@ -28,10 +29,20 @@ migrate = Migrate(app, db)
 
 # Create tables if they don't exist
 with app.app_context():
-    db.create_all()
+    from sqlalchemy import inspect
+    inspector = inspect(db.engine)
+    tables = inspector.get_table_names()
 
+    if not tables:
+        logging.debug("No tables found, initializing database...")
+        db.create_all()
+    else:
+        logging.debug(f"Existing tables found: {tables}")
+
+# Setup the SocketIO
 socketio = SocketIO(app)
 
+# Logging configuration
 logging.basicConfig(level=logging.DEBUG)
 
 # Configure OpenAI GPT
@@ -40,12 +51,28 @@ client = OpenAI(api_key=Config.OPENAI_API_KEY)
 # Configure Google Gemini
 genai.configure(api_key=Config.GOOGLE_API_KEY)
 
+# Check tables and initialize if needed
+@app.before_first_request
+def check_tables():
+    from sqlalchemy import inspect
+    inspector = inspect(db.engine)
+    tables = inspector.get_table_names()
+
+    if not tables:
+        logging.debug("No tables found, initializing database...")
+        db.create_all()
+    else:
+        logging.debug(f"Existing tables found: {tables}")
+
 def init_user(username):
     user = User.query.filter_by(username=username).first()
     if not user:
         user = User(username=username, profile_data={})
         db.session.add(user)
         db.session.commit()
+        logging.debug(f"User {username} created and added to the database.")
+    else:
+        logging.debug(f"User {username} already exists.")
     return user
 
 @app.route('/')
