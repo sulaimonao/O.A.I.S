@@ -1,29 +1,9 @@
 
-.env
-.DS_Store
-.env copy
-.env
 /__pycache__
-*.py
 /tools/__pycache__
-*.png
-.env
-.DS_Store
-/shared_venv/bin
-/shared_venv/lib
-*.cfg
-*.1
-.env
 repo_scan_overview.json
 /shared_venv
 /models/__pycache__
-/models/local_gpt2
-/models/local_gpt2
-/models/local_gpt2
-models/local_gpt2/model.safetensors
 /data/__pycache__
 project_overview.json
-.DS_Store
-.env
-.env
-.env
+.env copy
