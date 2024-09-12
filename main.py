@@ -82,7 +82,7 @@ def create_profile():
     username = data.get('username')
     if username:
         user = init_user(username)
-        return jsonify({'success': True})
+        return jsonify({'success': True, 'id': user.id})
     return jsonify({'error': 'Invalid username'}), 400
 
 @app.route('/upload', methods=['POST'])
@@ -100,9 +100,10 @@ def upload():
 @app.route('/save_settings', methods=['POST'])
 def save_settings():
     data = request.get_json()
-    session['provider'] = data.get('provider', 'openai')  # Default to OpenAI if none provided
-    session['model'] = data.get('model', 'gpt-4o')  # Default model
-    session['memory_enabled'] = data.get('memory_enabled', True)  # Default to memory on
+    session['provider'] = data.get('provider', 'openai')
+    session['model'] = data.get('model', 'gpt-4o')
+    session['memory_enabled'] = data.get('memory_enabled', True)
+    logging.debug(f"Settings saved: {session}")
     return jsonify({'success': True})
 
 @app.route('/get_settings', methods=['GET'])
@@ -110,6 +111,7 @@ def get_settings():
     provider = session.get('provider', 'openai')
     model = session.get('model', 'gpt-4o')
     memory_enabled = session.get('memory_enabled', True)
+    logging.debug(f"Settings retrieved: Provider={provider}, Model={model}, Memory Enabled={memory_enabled}")
     return jsonify({
         'provider': provider,
         'model': model,
@@ -141,6 +143,12 @@ def init_user(username):
     return user
 
 def create_or_fetch_session(user_id):
+    user_id = session.get('user_id')
+    if not user_id:
+        # Handle the case where user_id is not available
+        logging.error("User ID not found in session.")
+        emit('message', {'error': 'User not logged in.'})
+        return
     if not user_id:
         raise ValueError("User ID is required to create or fetch session.")
     
@@ -196,7 +204,8 @@ def generate_llm_response(prompt, model, provider, config):
             else:
                 return {'error': 'No valid response from Google API'}
 
-        elif provider == 'local':
+        elif provider in ['local', 'gpt-2-local']:
+        # Handle local GPT-2 model
             logging.debug('Using Local GPT-2 model')
             inputs = gpt2_tokenizer(prompt, return_tensors='pt')
             
@@ -213,6 +222,7 @@ def generate_llm_response(prompt, model, provider, config):
 
 @socketio.on('message')
 def handle_message(data):
+    logging.debug(f"Received data: {data}")
     data = json.loads(data)
     message = data['message']
     model = data.get('model') or session.get('model', Config.OPENAI_MODEL)
@@ -224,7 +234,6 @@ def handle_message(data):
     if intent in ["create_folder", "delete_file", "create_file", "delete_folder", "execute_python_code", "execute_bash_code", "execute_js_code"]:
         result = handle_task(intent, message)
         emit('message', {'response': result})
-
         emit('message', {'feedback_prompt': "Was the task executed correctly? (yes/no)"})
         
         if session.get('memory_enabled', True):

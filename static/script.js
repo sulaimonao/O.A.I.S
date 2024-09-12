@@ -1,4 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
+    // Socket.IO setup
+    const socket = io();
+
     // Fetch and populate profiles from the database
     fetch('/get_profiles')
     .then(response => response.json())
@@ -10,14 +13,15 @@ document.addEventListener('DOMContentLoaded', function() {
             option.textContent = profile.username;
             profileSelect.appendChild(option);
         });
-    }); 
-            
+    });
+
     // Fetch settings from session and restore
     fetch('/get_settings')
     .then(response => response.json())
     .then(data => {
         // Restore provider, model, and memory settings
         document.getElementById('provider-select').value = data.provider;
+        updateModelOptions(data.provider);
         document.getElementById('model-select').value = data.model;
         document.getElementById('memory-toggle').checked = data.memory_enabled;
     });
@@ -41,7 +45,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('Settings saved successfully!');
             }
         });
-    
+    });
+
     // Check GPT-2 status immediately on load
     fetch('/api/gpt2_status')
     .then(response => response.json())
@@ -55,7 +60,6 @@ document.addEventListener('DOMContentLoaded', function() {
             statusElement.classList.add('status-error');
         }
     });
-});
 
     // Test GPT-2 model interaction
     document.getElementById('test-gpt2-model').addEventListener('click', function() {
@@ -83,7 +87,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const provider = this.value;
         updateModelOptions(provider);
     });
-    
+
     function updateModelOptions(provider) {
         const modelSelect = document.getElementById('model-select');
         let models = [];
@@ -91,76 +95,113 @@ document.addEventListener('DOMContentLoaded', function() {
             models = ['gpt-4o', 'gpt-4o-mini'];
         } else if (provider === 'google') {
             models = ['gemini-1.5-pro', 'gemini-1.5-flash'];
-        } else if (provider === 'local') {
+        } else if (provider === 'gpt-2-local' || provider === 'local') {
             models = ['gpt-2-local'];
         }
         modelSelect.innerHTML = models.map(model => `<option value="${model}">${model}</option>`).join('');
-    }    
+    }
 
     // Create Profile
-    $('#create-profile').click(function() {
+    document.getElementById('create-profile').addEventListener('click', function() {
         const username = prompt("Enter new profile name:");
         if (username) {
-            $.ajax({
-                url: '/create_profile',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({ username: username }),
-                success: function(response) {
-                    if (response.success) {
-                        alert('Profile created successfully!');
-                        $('#profile-select').append(`<option value="${username}">${username}</option>`);
-                    } else {
-                        alert(response.error);
-                    }
+            fetch('/create_profile', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
                 },
-                error: function() {
-                    alert('Error creating profile.');
+                body: JSON.stringify({ username: username })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Profile created successfully!');
+                    const profileSelect = document.getElementById('profile-select');
+                    const option = document.createElement('option');
+                    option.value = data.id;
+                    option.textContent = username;
+                    profileSelect.appendChild(option);
+                } else {
+                    alert(data.error);
                 }
+            })
+            .catch(() => {
+                alert('Error creating profile.');
             });
         }
     });
 
     // Toggle Memory
-    $('#memory-toggle').change(function() {
-        const memoryEnabled = $(this).is(':checked');
-        $.ajax({
-            url: '/toggle_memory',
-            type: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({ memory_enabled: memoryEnabled }),
-            success: function(response) {
-                if (response.success) {
-                    alert('Memory toggled successfully!');
-                } else {
-                    alert(response.error);
-                }
+    document.getElementById('memory-toggle').addEventListener('change', function() {
+        const memoryEnabled = this.checked;
+        fetch('/toggle_memory', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
             },
-            error: function() {
-                alert('Error toggling memory.');
+            body: JSON.stringify({ memory_enabled: memoryEnabled })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Memory toggled successfully!');
+            } else {
+                alert(data.error);
             }
+        })
+        .catch(() => {
+            alert('Error toggling memory.');
         });
     });
-});
 
-document.getElementById('save-gpt2-settings').addEventListener('click', function() {
-    const maxTokens = document.getElementById('gpt2-max-tokens').value;
+    // Save GPT-2 Settings
+    document.getElementById('save-gpt2-settings').addEventListener('click', function() {
+        const maxTokens = document.getElementById('gpt2-max-tokens').value;
+        alert('GPT-2 settings saved successfully!');
+    });
 
-    fetch('/generate_gpt2', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            prompt: 'Test prompt',  // This can be dynamically set
-            max_tokens: parseInt(maxTokens, 10)
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        console.log('GPT-2 Response:', data.response);
-    })
-    .catch(error => {
-        console.error('Error:', error);
+    // Socket.IO chat functionality
+    const chatForm = document.getElementById('chat-form');
+    chatForm.addEventListener('submit', function(event) {
+        event.preventDefault();
+        const messageInput = document.getElementById('user-input');
+        const message = messageInput.value;
+
+        const provider = document.getElementById('provider-select').value;
+        const model = document.getElementById('model-select').value;
+
+        const data = {
+            message: message,
+            provider: provider,
+            model: model
+        };
+
+        socket.emit('message', JSON.stringify(data));
+
+        // Add user's message to chat history
+        const chatHistory = document.getElementById('chat-history');
+        chatHistory.innerHTML += `<div class="user-message"><strong>You:</strong> ${message}</div>`;
+
+        messageInput.value = '';
+    });
+
+    // Handle incoming messages from the server
+    socket.on('message', function(data) {
+        const chatHistory = document.getElementById('chat-history');
+        if (data.assistant) {
+            chatHistory.innerHTML += `<div class="assistant-message"><strong>Assistant:</strong> ${data.assistant}</div>`;
+        }
+        if (data.error) {
+            chatHistory.innerHTML += `<div class="error-message"><strong>Error:</strong> ${data.error}</div>`;
+        }
+        if (data.feedback_prompt) {
+            chatHistory.innerHTML += `<div class="assistant-message"><strong>Assistant:</strong> ${data.feedback_prompt}</div>`;
+        }
+        if (data.memory) {
+            chatHistory.innerHTML += `<div class="assistant-message"><strong>Memory:</strong> ${data.memory}</div>`;
+        }
+        if (data.response) {
+            chatHistory.innerHTML += `<div class="assistant-message"><strong>Assistant:</strong> ${data.response}</div>`;
+        }
     });
 });
