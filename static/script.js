@@ -1,4 +1,47 @@
 document.addEventListener('DOMContentLoaded', function() {
+    // Fetch and populate profiles from the database
+    fetch('/get_profiles')
+    .then(response => response.json())
+    .then(profiles => {
+        const profileSelect = document.getElementById('profile-select');
+        profiles.forEach(profile => {
+            const option = document.createElement('option');
+            option.value = profile.id;
+            option.textContent = profile.username;
+            profileSelect.appendChild(option);
+        });
+    }); 
+            
+    // Fetch settings from session and restore
+    fetch('/get_settings')
+    .then(response => response.json())
+    .then(data => {
+        // Restore provider, model, and memory settings
+        document.getElementById('provider-select').value = data.provider;
+        document.getElementById('model-select').value = data.model;
+        document.getElementById('memory-toggle').checked = data.memory_enabled;
+    });
+
+    // Save settings when changed
+    document.getElementById('save-settings').addEventListener('click', function() {
+        const provider = document.getElementById('provider-select').value;
+        const model = document.getElementById('model-select').value;
+        const memoryEnabled = document.getElementById('memory-toggle').checked;
+
+        fetch('/save_settings', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ provider, model, memory_enabled: memoryEnabled })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Settings saved successfully!');
+            }
+        });
+    
     // Check GPT-2 status immediately on load
     fetch('/api/gpt2_status')
     .then(response => response.json())
@@ -12,6 +55,7 @@ document.addEventListener('DOMContentLoaded', function() {
             statusElement.classList.add('status-error');
         }
     });
+});
 
     // Test GPT-2 model interaction
     document.getElementById('test-gpt2-model').addEventListener('click', function() {
@@ -39,7 +83,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const provider = this.value;
         updateModelOptions(provider);
     });
-
+    
     function updateModelOptions(provider) {
         const modelSelect = document.getElementById('model-select');
         let models = [];
@@ -48,10 +92,10 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (provider === 'google') {
             models = ['gemini-1.5-pro', 'gemini-1.5-flash'];
         } else if (provider === 'local') {
-            models = ['gpt-2-local'];  // Add Local GPT-2 model option here
+            models = ['gpt-2-local'];
         }
         modelSelect.innerHTML = models.map(model => `<option value="${model}">${model}</option>`).join('');
-    }
+    }    
 
     // Create Profile
     $('#create-profile').click(function() {

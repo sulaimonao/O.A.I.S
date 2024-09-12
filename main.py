@@ -97,6 +97,26 @@ def upload():
         file.save(filepath)
         return jsonify({'filename': file.filename})
 
+@app.route('/save_settings', methods=['POST'])
+def save_settings():
+    data = request.get_json()
+    session['provider'] = data.get('provider', 'openai')  # Default to OpenAI if none provided
+    session['model'] = data.get('model', 'gpt-4o')  # Default model
+    session['memory_enabled'] = data.get('memory_enabled', True)  # Default to memory on
+    return jsonify({'success': True})
+
+@app.route('/get_settings', methods=['GET'])
+def get_settings():
+    provider = session.get('provider', 'openai')
+    model = session.get('model', 'gpt-4o')
+    memory_enabled = session.get('memory_enabled', True)
+    return jsonify({
+        'provider': provider,
+        'model': model,
+        'memory_enabled': memory_enabled
+    })
+
+
 def init_user(username):
     user = User.query.filter_by(username=username).first()
     if not user:

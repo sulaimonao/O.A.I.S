@@ -20,6 +20,7 @@ body {
 }
 
 #container {
+    position: relative; /* Ensure the parent container has relative positioning */    
     display: flex;
     flex-direction: column;
     width: 80%;
@@ -171,4 +172,25 @@ button[type="submit"]:hover {
 }
 .status-error {
     color: red;
+}
+
+#gpt2-status-box {
+    position: absolute;
+    right: 0; /* Aligns it to the rightmost side */
+    top: 20px; /* Adjusts the vertical position, change as needed */
+    padding: 20px;
+    background-color: #f8f9fa; /* Matches the sidebar background */
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: 250px; /* Adjust width as needed */
+}
+
+#gpt2-status-box h2 {
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+}
+
+#gpt2-status-box p {
+    font-size: 1rem;
 }
