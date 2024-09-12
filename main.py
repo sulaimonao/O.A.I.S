@@ -1,7 +1,7 @@
 import os
 import json
 import logging
-from flask import Flask, render_template, request, jsonify, session  # Added session
+from flask import Flask, render_template, request, jsonify, session
 from flask_socketio import SocketIO, emit
 from flask_session import Session
 from openai import OpenAI
@@ -17,68 +17,22 @@ from data.memory import retrieve_memory
 from datetime import datetime
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
 
+# Load local GPT-2 model
 gpt2_model_path = "models/local_gpt2"
 gpt2_tokenizer = GPT2Tokenizer.from_pretrained(gpt2_model_path)
 gpt2_model = GPT2LMHeadModel.from_pretrained(gpt2_model_path)
 
-# Initialize the Flask app
 app = Flask(__name__)
 app.config.from_object(Config)
-app.secret_key = os.getenv('SECRET_KEY', 'default_secret_key')  # Required for session handling
+app.secret_key = os.getenv('SECRET_KEY', 'default_secret_key')
 
-# Initialize the database with Flask
 db.init_app(app)
-
-# Add Flask-Migrate
 migrate = Migrate(app, db)
 
-# Create tables if they don't exist
-with app.app_context():
-    from sqlalchemy import inspect
-    inspector = inspect(db.engine)
-    tables = inspector.get_table_names()
-
-    if not tables:
-        logging.debug("No tables found, initializing database...")
-        db.create_all()
-    else:
-        logging.debug(f"Existing tables found: {tables}")
-
-# Setup the SocketIO
 socketio = SocketIO(app)
-
-# Logging configuration
 logging.basicConfig(level=logging.DEBUG)
-
-# Configure OpenAI GPT
 client = OpenAI(api_key=Config.OPENAI_API_KEY)
-
-# Configure Google Gemini
 genai.configure(api_key=Config.GOOGLE_API_KEY)
-
-# Check tables and initialize if needed
-@app.before_first_request
-def check_tables():
-    from sqlalchemy import inspect
-    inspector = inspect(db.engine)
-    tables = inspector.get_table_names()
-
-    if not tables:
-        logging.debug("No tables found, initializing database...")
-        db.create_all()
-    else:
-        logging.debug(f"Existing tables found: {tables}")
-
-def init_user(username):
-    user = User.query.filter_by(username=username).first()
-    if not user:
-        user = User(username=username, profile_data={})
-        db.session.add(user)
-        db.session.commit()
-        logging.debug(f"User {username} created and added to the database.")
-    else:
-        logging.debug(f"User {username} already exists.")
-    return user
 
 @app.route('/')
 def index():
@@ -88,24 +42,36 @@ def index():
 def gpt2_interact():
     data = request.json
     input_text = data.get("input_text", "")
-    inputs = gpt2_tokenizer(input_text, return_tensors='pt')
-    outputs = gpt2_model.generate(**inputs)
-    decoded_output = gpt2_tokenizer.decode(outputs[0], skip_special_tokens=True)
-    return jsonify({"response": decoded_output})
+    try:
+        inputs = gpt2_tokenizer(input_text, return_tensors='pt')
+        outputs = gpt2_model.generate(**inputs)
+        decoded_output = gpt2_tokenizer.decode(outputs[0], skip_special_tokens=True)
+        return jsonify({"response": decoded_output})
+    except Exception as e:
+        logging.error(f"Error generating GPT-2 response: {str(e)}")
+        return jsonify({"error": f"Failed to generate GPT-2 response: {str(e)}"}), 500
+
+@app.route('/api/gpt2_status', methods=['GET'])
+def gpt2_status():
+    try:
+        inputs = gpt2_tokenizer("Test", return_tensors='pt')
+        gpt2_model.generate(**inputs)
+        return jsonify({'status': 'operational'})
+    except Exception as e:
+        logging.error(f"Error loading GPT-2 model: {str(e)}")
+        return jsonify({'status': 'error', 'error': str(e)})
 
 @app.route('/toggle_memory', methods=['POST'])
 def toggle_memory():
     data = request.get_json()
     memory_enabled = data.get('memory_enabled')
     if memory_enabled is not None:
-        # Save memory status in session
         session['memory_enabled'] = memory_enabled
         return jsonify({'success': True})
     return jsonify({'error': 'Invalid memory status'}), 400
 
 @app.route('/get_profiles', methods=['GET'])
 def get_profiles():
-    """Fetch all user profiles from the database."""
     users = User.query.all()
     profile_list = [{"id": user.id, "username": user.username} for user in users]
     return jsonify(profile_list)
@@ -130,6 +96,14 @@ def upload():
         filepath = os.path.join('uploads', file.filename)
         file.save(filepath)
         return jsonify({'filename': file.filename})
+
+def init_user(username):
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        user = User(username=username, profile_data={})
+        db.session.add(user)
+        db.session.commit()
+    return user
 
 def create_or_fetch_session(user_id):
     session = Session.query.filter_by(user_id=user_id, start_time=datetime.utcnow().date()).first()
@@ -169,22 +143,16 @@ def generate_llm_response(prompt, model, provider, config):
             return {'code': content}
 
         elif provider == 'google':
-            # Ensure that model starts with the correct path format
             if not model.startswith('models/') and not model.startswith('tunedModels/'):
                 model = 'models/' + model
 
             genai_model = genai.GenerativeModel(model)
             response = genai_model.generate_content(prompt)
 
-            # Log the response for debugging
-            logging.debug(f"Google API Response: {response}")
-
             if hasattr(response, 'candidates') and response.candidates:
-                # Return the response content properly
                 response_text = response.candidates[0].content.parts[0].text
                 return {'code': response_text}
             else:
-                logging.error("No candidates returned in Google API response.")
                 return {'error': 'No valid response from Google API'}
 
     except Exception as e:
@@ -207,8 +175,8 @@ def handle_message(data):
 
         emit('message', {'feedback_prompt': "Was the task executed correctly? (yes/no)"})
         
-        if session.get('memory_enabled', True):  # Default to True
-            session_id = create_or_fetch_session(user_id)  # Placeholder function
+        if session.get('memory_enabled', True):
+            session_id = create_or_fetch_session(user_id)
             interaction = Interaction(
                 session_id=session_id,
                 prompt=message,
@@ -249,27 +217,3 @@ if __name__ == '__main__':
     if not os.path.exists('uploads'):
         os.makedirs('uploads')
     socketio.run(app, debug=True)
-
-
-# Import necessary modules for GPT-2
-from transformers import GPT2LMHeadModel, GPT2Tokenizer
-
-# Load the GPT-2 model and tokenizer
-gpt2_tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
-gpt2_model = GPT2LMHeadModel.from_pretrained('gpt2')
-
-def generate_gpt2_response(prompt):
-    inputs = gpt2_tokenizer.encode(prompt, return_tensors="pt")
-    outputs = gpt2_model.generate(inputs, max_length=150)
-    return gpt2_tokenizer.decode(outputs[0], skip_special_tokens=True)
-
-@app.route('/generate_gpt2', methods=['POST'])
-def generate_gpt2():
-    data = request.get_json()
-    prompt = data.get('prompt', '')
-    if not prompt:
-        return jsonify({'error': 'No prompt provided'}), 400
-
-    # Generate response from GPT-2
-    response = generate_gpt2_response(prompt)
-    return jsonify({'response': response})

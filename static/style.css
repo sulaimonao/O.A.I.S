@@ -154,3 +154,21 @@ button[type="submit"]:hover {
     max-width: 100%;
     border-radius: 10px;
 }
+
+#local-model-section {
+    margin-top: 20px;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+}
+
+.status-indicator {
+    font-weight: bold;
+}
+.status-success {
+    color: green;
+}
+.status-error {
+    color: red;
+}

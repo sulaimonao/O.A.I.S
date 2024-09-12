@@ -1,242 +1,100 @@
-$('#create-profile').click(function() {
-    const username = prompt("Enter new profile name:");
-    if (username) {
+document.addEventListener('DOMContentLoaded', function() {
+    // Check GPT-2 status immediately on load
+    fetch('/api/gpt2_status')
+    .then(response => response.json())
+    .then(data => {
+        const statusElement = document.getElementById('gpt2-status');
+        if (data.status === 'operational') {
+            statusElement.textContent = 'Status: Operational';
+            statusElement.classList.add('status-success');
+        } else {
+            statusElement.textContent = 'Status: Error - ' + data.error;
+            statusElement.classList.add('status-error');
+        }
+    });
+
+    // Test GPT-2 model interaction
+    document.getElementById('test-gpt2-model').addEventListener('click', function() {
+        const prompt = prompt("Enter a prompt to test GPT-2:");
+        if (prompt) {
+            fetch('/api/gpt2_interact', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ input_text: prompt })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('gpt2-response').textContent = data.response;
+            })
+            .catch(() => {
+                document.getElementById('gpt2-response').textContent = 'Error generating response.';
+            });
+        }
+    });
+
+    // Update model options based on provider selection
+    document.getElementById('provider-select').addEventListener('change', function() {
+        const provider = this.value;
+        updateModelOptions(provider);
+    });
+
+    function updateModelOptions(provider) {
+        const modelSelect = document.getElementById('model-select');
+        let models = [];
+        if (provider === 'openai') {
+            models = ['gpt-4o', 'gpt-4o-mini'];
+        } else if (provider === 'google') {
+            models = ['gemini-1.5-pro', 'gemini-1.5-flash'];
+        } else if (provider === 'local') {
+            models = ['gpt-2-local'];  // Add Local GPT-2 model option here
+        }
+        modelSelect.innerHTML = models.map(model => `<option value="${model}">${model}</option>`).join('');
+    }
+
+    // Create Profile
+    $('#create-profile').click(function() {
+        const username = prompt("Enter new profile name:");
+        if (username) {
+            $.ajax({
+                url: '/create_profile',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ username: username }),
+                success: function(response) {
+                    if (response.success) {
+                        alert('Profile created successfully!');
+                        $('#profile-select').append(`<option value="${username}">${username}</option>`);
+                    } else {
+                        alert(response.error);
+                    }
+                },
+                error: function() {
+                    alert('Error creating profile.');
+                }
+            });
+        }
+    });
+
+    // Toggle Memory
+    $('#memory-toggle').change(function() {
+        const memoryEnabled = $(this).is(':checked');
         $.ajax({
-            url: '/create_profile',
+            url: '/toggle_memory',
             type: 'POST',
             contentType: 'application/json',
-            data: JSON.stringify({ username: username }),
+            data: JSON.stringify({ memory_enabled: memoryEnabled }),
             success: function(response) {
                 if (response.success) {
-                    alert('Profile created successfully!');
-                    $('#profile-select').append(`<option value="${username}">${username}</option>`);
+                    alert('Memory toggled successfully!');
                 } else {
                     alert(response.error);
                 }
             },
             error: function() {
-                alert('Error creating profile.');
+                alert('Error toggling memory.');
             }
         });
-    }
-});
-
-$('#memory-toggle').change(function() {
-    const memoryEnabled = $(this).is(':checked');
-    $.ajax({
-        url: '/toggle_memory',
-        type: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({ memory_enabled: memoryEnabled }),
-        success: function(response) {
-            if (response.success) {
-                alert('Memory toggled successfully!');
-            } else {
-                alert(response.error);
-            }
-        },
-        error: function() {
-            alert('Error toggling memory.');
-        }
     });
 });
-
-document.getElementById('modelSelect').addEventListener('change', function() {
-    const selectedModel = this.value;
-    if (selectedModel === 'gpt-2-local') {
-        fetch('/api/gpt2_interact', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                input_text: userInputText
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            // Display the GPT-2 response in the UI
-            console.log(data.response);
-        });
-    }
-});
-
-$(document).ready(function() {
-    var socket = io();
-    var selectedModel = '';  // Default model
-    var selectedProvider = '';  // Default provider
-    var botResponseBuffer = "";  // Buffer to store bot response chunks
-
-    // Centralized model options
-    const modelsByProvider = {
-    'local': ['gpt-2'],
-        'openai': ['gpt-4o', 'gpt-4o-mini'],
-        'google': ['gemini-1.5-pro', 'gemini-1.5-flash']
-    };
-
-    // Function to update model options based on provider
-    function updateModelOptions(provider) {
-        const modelOptions = modelsByProvider[provider] || [];
-        let optionsHtml = '';
-        modelOptions.forEach(model => {
-            optionsHtml += `<option value="${model}">${model}</option>`;
-        });
-        $('#model-select').html(optionsHtml);
-    }
-
-    // Initialize model options based on provider
-    updateModelOptions($('#provider-select').val());
-
-    // Default config values
-    const defaultConfig = {
-        temperature: 0.8,
-        maxTokens: 4000,
-        topP: 1.0
-    };
-
-    // Initialize temperature, max tokens, and top-p
-    $('#temperature').val(defaultConfig.temperature);
-    $('#max-tokens').val(defaultConfig.maxTokens);
-    $('#top-p').val(defaultConfig.topP);
-
-    // Update model options when provider changes
-    $('#provider-select').change(function() {
-        selectedProvider = $(this).val();
-        updateModelOptions(selectedProvider);
-    });
-
-    // Show or hide custom engine text box based on model selection
-    $('#model-select').change(function() {
-        if ($(this).val() === 'custom') {
-            $('#custom-engine').show();
-        } else {
-            $('#custom-engine').hide();
-        }
-    });
-
-    // Save settings
-    $('#save-settings').click(function() {
-        selectedModel = $('#model-select').val();
-        selectedProvider = $('#provider-select').val();
-        alert('Settings saved! Using provider: ' + selectedProvider + ', model: ' + selectedModel);
-    });
-
-    // Submit form and send message
-    $('form').submit(function(event) {
-        event.preventDefault();
-        const message = $('#user-input').val();
-        const fileInput = $('#file-input')[0];
-
-        // Fetch config values (temperature, maxTokens, topP) from user input
-        const config = {
-            temperature: parseFloat($('#temperature').val()) || defaultConfig.temperature,
-            maxTokens: parseInt($('#max-tokens').val(), 10) || defaultConfig.maxTokens,
-            topP: parseFloat($('#top-p').val()) || defaultConfig.topP
-        };
-
-        // Append the user's message to the chat
-        $('#chat-history').append('<div class="user-message">' + message + '</div>');
-
-        // Handle file upload and message sending
-        if (fileInput.files.length > 0) {
-            const file = fileInput.files[0];
-            const formData = new FormData();
-            const customEngine = $('#custom-engine').val();
-
-            let modelToUse = selectedModel;
-            if (selectedModel === 'custom') {
-                modelToUse = customEngine;
-            }
-
-            formData.append('file', file);
-            $.ajax({
-                url: '/upload',
-                type: 'POST',
-                data: formData,
-                processData: false,
-                contentType: false,
-                success: function(response) {
-                    if (response.error) {
-                        alert(response.error);
-                    } else {
-                        socket.send(JSON.stringify({
-                            message: message,
-                            model: modelToUse,
-                            provider: selectedProvider,
-                            filename: response.filename,
-                            config: config
-                        }));
-                        $('#user-input').val(''); // Reset input
-                        $('#file-input').val('');  // Reset file input
-                    }
-                }
-            });
-        } else {
-            socket.send(JSON.stringify({
-                message: message,
-                model: selectedModel,
-                provider: selectedProvider,
-                config: config
-            }));
-            $('#user-input').val(''); // Reset input
-        }
-    });
-
-    // Handle streaming response chunks
-    socket.on('message', function(data) {
-        console.log('Received message data:', data);  // Add this to debug
-    
-        if (data.error) {
-            alert(data.error);
-        } else {
-            if (data.user) {
-                $('#chat-history').append('<div class="user-message">' + data.user + '</div>');
-            }
-    
-            if (data.assistant) {
-                botResponseBuffer += data.assistant;
-    
-                // Ensure a new response container is created for each bot response
-                if ($('#chat-history .bot-response').last().length === 0 || $('#chat-history .bot-response').last().text() !== botResponseBuffer) {
-                    $('#chat-history').append('<div class="bot-response"></div>');
-                }
-    
-                // Update the last bot-response div with the new chunk
-                $('#chat-history .bot-response').last().text(botResponseBuffer);
-            }
-    
-            $('#chat-history').scrollTop($('#chat-history')[0].scrollHeight);  // Scroll to bottom
-        }
-    });    
-
-    // Reset bot response buffer when message ends
-    socket.on('message_end', function() {
-        botResponseBuffer = "";  // Reset buffer for next message
-    });
-});
-
-
-    // Detect model selection changes
-    $('#model-select').change(function() {
-        selectedModel = $(this).val();
-        if (selectedModel === 'gpt-2') {
-            $('#submit-prompt').click(function() {
-                const prompt = $('#prompt').val();
-                if (prompt) {
-                    $.ajax({
-                        url: '/generate_gpt2',
-                        type: 'POST',
-                        contentType: 'application/json',
-                        data: JSON.stringify({ prompt: prompt }),
-                        success: function(response) {
-                            $('#response').text(response.response);  // Display GPT-2 response
-                        },
-                        error: function() {
-                            alert('Error generating response from GPT-2.');
-                        }
-                    });
-                }
-            });
-        }
-    });
-
