@@ -15,6 +15,11 @@ from flask_migrate import Migrate
 from data.models import db, User, Session, Interaction
 from data.memory import retrieve_memory
 from datetime import datetime
+from transformers import GPT2Tokenizer, GPT2LMHeadModel
+
+gpt2_model_path = "models/local_gpt2"
+gpt2_tokenizer = GPT2Tokenizer.from_pretrained(gpt2_model_path)
+gpt2_model = GPT2LMHeadModel.from_pretrained(gpt2_model_path)
 
 # Initialize the Flask app
 app = Flask(__name__)
@@ -78,6 +83,15 @@ def init_user(username):
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/api/gpt2_interact', methods=['POST'])
+def gpt2_interact():
+    data = request.json
+    input_text = data.get("input_text", "")
+    inputs = gpt2_tokenizer(input_text, return_tensors='pt')
+    outputs = gpt2_model.generate(**inputs)
+    decoded_output = gpt2_tokenizer.decode(outputs[0], skip_special_tokens=True)
+    return jsonify({"response": decoded_output})
 
 @app.route('/toggle_memory', methods=['POST'])
 def toggle_memory():
