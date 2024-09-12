@@ -235,3 +235,27 @@ if __name__ == '__main__':
     if not os.path.exists('uploads'):
         os.makedirs('uploads')
     socketio.run(app, debug=True)
+
+
+# Import necessary modules for GPT-2
+from transformers import GPT2LMHeadModel, GPT2Tokenizer
+
+# Load the GPT-2 model and tokenizer
+gpt2_tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+gpt2_model = GPT2LMHeadModel.from_pretrained('gpt2')
+
+def generate_gpt2_response(prompt):
+    inputs = gpt2_tokenizer.encode(prompt, return_tensors="pt")
+    outputs = gpt2_model.generate(inputs, max_length=150)
+    return gpt2_tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+@app.route('/generate_gpt2', methods=['POST'])
+def generate_gpt2():
+    data = request.get_json()
+    prompt = data.get('prompt', '')
+    if not prompt:
+        return jsonify({'error': 'No prompt provided'}), 400
+
+    # Generate response from GPT-2
+    response = generate_gpt2_response(prompt)
+    return jsonify({'response': response})

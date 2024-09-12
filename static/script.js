@@ -49,6 +49,7 @@ $(document).ready(function() {
 
     // Centralized model options
     const modelsByProvider = {
+    'local': ['gpt-2'],
         'openai': ['gpt-4o', 'gpt-4o-mini'],
         'google': ['gemini-1.5-pro', 'gemini-1.5-flash']
     };
@@ -193,3 +194,29 @@ $(document).ready(function() {
         botResponseBuffer = "";  // Reset buffer for next message
     });
 });
+
+
+    // Detect model selection changes
+    $('#model-select').change(function() {
+        selectedModel = $(this).val();
+        if (selectedModel === 'gpt-2') {
+            $('#submit-prompt').click(function() {
+                const prompt = $('#prompt').val();
+                if (prompt) {
+                    $.ajax({
+                        url: '/generate_gpt2',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({ prompt: prompt }),
+                        success: function(response) {
+                            $('#response').text(response.response);  // Display GPT-2 response
+                        },
+                        error: function() {
+                            alert('Error generating response from GPT-2.');
+                        }
+                    });
+                }
+            });
+        }
+    });
+ 
