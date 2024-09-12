@@ -41,6 +41,26 @@ $('#memory-toggle').change(function() {
     });
 });
 
+document.getElementById('modelSelect').addEventListener('change', function() {
+    const selectedModel = this.value;
+    if (selectedModel === 'gpt-2-local') {
+        fetch('/api/gpt2_interact', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                input_text: userInputText
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Display the GPT-2 response in the UI
+            console.log(data.response);
+        });
+    }
+});
+
 $(document).ready(function() {
     var socket = io();
     var selectedModel = '';  // Default model
@@ -219,4 +239,4 @@ $(document).ready(function() {
             });
         }
     });
- 
+

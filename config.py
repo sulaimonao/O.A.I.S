@@ -1,5 +1,7 @@
 import os
 from dotenv import load_dotenv
+from pathlib import Path
+
 
 # Load environment variables from .env file
 load_dotenv()
@@ -15,7 +17,7 @@ class Config:
     SYSTEM_PROMPT = "You are a helpful assistant."
 
     # Explicitly use the absolute path to your SQLite file to avoid confusion with instance folder
-    basedir = os.path.abspath(os.path.dirname(__file__))
+    basedir = Path(__file__).resolve().parent
     SQLALCHEMY_DATABASE_URI = f"sqlite:///{os.path.join(basedir, 'data/oais.db')}"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SECRET_KEY = os.getenv('SECRET_KEY', 'default_secret_key')
