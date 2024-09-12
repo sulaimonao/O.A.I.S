@@ -43,7 +43,12 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             if (data.success) {
                 alert('Settings saved successfully!');
+            } else {
+                alert('Failed to save settings.');
             }
+        })
+        .catch(() => {
+            alert('Error saving settings.');
         });
     });
 
@@ -74,7 +79,7 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(response => response.json())
             .then(data => {
-                document.getElementById('gpt2-response').textContent = data.response;
+                document.getElementById('gpt2-response').textContent = data.response || data.error;
             })
             .catch(() => {
                 document.getElementById('gpt2-response').textContent = 'Error generating response.';
@@ -95,7 +100,7 @@ document.addEventListener('DOMContentLoaded', function() {
             models = ['gpt-4o', 'gpt-4o-mini'];
         } else if (provider === 'google') {
             models = ['gemini-1.5-pro', 'gemini-1.5-flash'];
-        } else if (provider === 'gpt-2-local' || provider === 'local') {
+        } else if (provider === 'local' || provider === 'gpt-2-local') {
             models = ['gpt-2-local'];
         }
         modelSelect.innerHTML = models.map(model => `<option value="${model}">${model}</option>`).join('');
@@ -156,7 +161,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Save GPT-2 Settings
     document.getElementById('save-gpt2-settings').addEventListener('click', function() {
-        const maxTokens = document.getElementById('gpt2-max-tokens').value;
+        const maxTokens = parseInt(document.getElementById('gpt2-max-tokens').value, 10);
+        if (isNaN(maxTokens) || maxTokens <= 0) {
+            alert('Please enter a valid number for Max Tokens.');
+            return;
+        }
         alert('GPT-2 settings saved successfully!');
     });
 
@@ -165,7 +174,10 @@ document.addEventListener('DOMContentLoaded', function() {
     chatForm.addEventListener('submit', function(event) {
         event.preventDefault();
         const messageInput = document.getElementById('user-input');
-        const message = messageInput.value;
+        const message = messageInput.value.trim();
+        if (message === '') {
+            return;
+        }
 
         const provider = document.getElementById('provider-select').value;
         const model = document.getElementById('model-select').value;
@@ -181,6 +193,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Add user's message to chat history
         const chatHistory = document.getElementById('chat-history');
         chatHistory.innerHTML += `<div class="user-message"><strong>You:</strong> ${message}</div>`;
+        chatHistory.scrollTop = chatHistory.scrollHeight;
 
         messageInput.value = '';
     });
@@ -203,5 +216,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (data.response) {
             chatHistory.innerHTML += `<div class="assistant-message"><strong>Assistant:</strong> ${data.response}</div>`;
         }
+        chatHistory.scrollTop = chatHistory.scrollHeight;
     });
 });
