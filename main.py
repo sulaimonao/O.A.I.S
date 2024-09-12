@@ -116,6 +116,22 @@ def get_settings():
         'memory_enabled': memory_enabled
     })
 
+@app.route('/generate_gpt2', methods=['POST'])
+def generate_gpt2():
+    data = request.get_json()
+    prompt = data.get('prompt', '')
+    max_tokens = data.get('max_tokens', 100)  # Default value is 100
+    
+    if not prompt:
+        return jsonify({'error': 'No prompt provided'}), 400
+
+    # Generate response from GPT-2 with customizable token limit
+    inputs = gpt2_tokenizer.encode(prompt, return_tensors="pt")
+    outputs = gpt2_model.generate(inputs, max_length=max_tokens)  # Customizable max tokens
+    response = gpt2_tokenizer.decode(outputs[0], skip_special_tokens=True)
+    
+    return jsonify({'response': response})
+
 def init_user(username):
     user = User.query.filter_by(username=username).first()
     if not user:
@@ -136,8 +152,7 @@ def create_or_fetch_session(user_id):
     return session.id
 
 def generate_llm_response(prompt, model, provider, config):
-    logging.debug(f"Generating response using model {model} from provider {provider} with prompt: {prompt}")
-
+    logging.debug(f"Generating response using provider: {provider}, model: {model}")
     try:
         temperature = config.get('temperature', Config.TEMPERATURE)
         max_tokens = config.get('maxTokens', Config.MAX_TOKENS)
@@ -184,7 +199,11 @@ def generate_llm_response(prompt, model, provider, config):
         elif provider == 'local':
             logging.debug('Using Local GPT-2 model')
             inputs = gpt2_tokenizer(prompt, return_tensors='pt')
-            outputs = gpt2_model.generate(**inputs, max_new_tokens=100)
+            
+            # Dynamic max_new_tokens based on system performance or provide a default
+            max_new_tokens = config.get('max_new_tokens', 100)  # Change default value as needed
+            
+            outputs = gpt2_model.generate(**inputs, max_new_tokens=max_new_tokens)
             decoded_output = gpt2_tokenizer.decode(outputs[0], skip_special_tokens=True)
             return {'code': decoded_output}
 

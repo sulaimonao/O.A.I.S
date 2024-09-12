@@ -142,3 +142,25 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+document.getElementById('save-gpt2-settings').addEventListener('click', function() {
+    const maxTokens = document.getElementById('gpt2-max-tokens').value;
+
+    fetch('/generate_gpt2', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            prompt: 'Test prompt',  // This can be dynamically set
+            max_tokens: parseInt(maxTokens, 10)
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('GPT-2 Response:', data.response);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+});
