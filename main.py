@@ -206,6 +206,7 @@ def generate_llm_response(prompt, model, provider, config):
         max_tokens = config.get('maxTokens', Config.MAX_TOKENS)
         top_p = config.get('topP', Config.TOP_P)
 
+        # Check provider and generate response from the model
         if provider == 'openai':
             logging.debug('Using OpenAI model')
             stream = client.chat.completions.create(
@@ -245,16 +246,20 @@ def generate_llm_response(prompt, model, provider, config):
                 return {'error': 'No valid response from Google API'}
 
         elif provider in ['local', 'gpt-2-local']:
-        # Handle local GPT-2 model
+            # Handle local GPT-2 model
             logging.debug('Using Local GPT-2 model')
             inputs = gpt2_tokenizer(prompt, return_tensors='pt')
-            
-            # Dynamic max_new_tokens based on system performance or provide a default
-            max_new_tokens = config.get('max_new_tokens', 100)  # Change default value as needed
-            
+            max_new_tokens = config.get('max_new_tokens', 100)
             outputs = gpt2_model.generate(**inputs, max_new_tokens=max_new_tokens)
             decoded_output = gpt2_tokenizer.decode(outputs[0], skip_special_tokens=True)
             return {'code': decoded_output}
+
+        # Extract code block from LLM response and execute
+        extracted_code = extract_code_from_message(content)
+        if extracted_code:
+            language = "python"  # Set language; could be detected based on the model’s context
+            execution_result = execute_code(extracted_code, language=language)
+            return {'code': execution_result.get('output', 'Code execution failed')}
 
     except Exception as e:
         logging.error(f"Error generating response with provider {provider} and model {model}: {str(e)}")

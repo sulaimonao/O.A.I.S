@@ -19,12 +19,12 @@ def limit_resources():
 def extract_name_from_message(message):
     """Extract file or folder name from the message."""
     match = re.search(r'\"(.*?)\"', message)
-    return match.group(1) if match else "Untitled"  # Fallback to "Untitled" if no match is found
+    return match.group(1) if match else "Untitled"
 
 def extract_code_from_message(message):
     """Extract code from message."""
     match = re.search(r"```(.*?)```", message, re.DOTALL)
-    return match.group(1) if match else message  # Fallback to the entire message if no code block is found
+    return match.group(1) if match else message
 
 def extract_code_from_response(response):
     """
