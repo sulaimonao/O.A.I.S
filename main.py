@@ -1,6 +1,9 @@
 import os
 import json
 import logging
+import subprocess
+import sys
+import io
 from flask import Flask, render_template, request, jsonify, session
 from flask_socketio import SocketIO, emit
 from flask_session import Session
@@ -16,6 +19,9 @@ from data.models import db, User, Session, Interaction
 from data.memory import retrieve_memory
 from datetime import datetime
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
+from tools.code_execution import execute_python_code, execute_js_code, execute_bash_code
+from data.models import CodeExecutionLog
+
 
 # Load local GPT-2 model
 gpt2_model_path = "models/local_gpt2"
@@ -133,6 +139,40 @@ def generate_gpt2():
     response = gpt2_tokenizer.decode(outputs[0], skip_special_tokens=True)
     
     return jsonify({'response': response})
+
+@app.route('/execute_code', methods=['POST'])
+def execute_code_route():
+    data = request.get_json()
+    code = data.get('code', '')
+    language = data.get('language', 'python')  # Default to Python
+
+    if not code:
+        return jsonify({'error': 'No code provided'}), 400
+
+    user_id = session.get('user_id', 'anonymous')  # Get user ID or 'anonymous'
+
+    if language == 'python':
+        result = execute_python_code(code)
+    elif language == 'javascript':
+        result = execute_js_code(code)
+    elif language == 'bash':
+        result = execute_bash_code(code)
+    else:
+        return jsonify({'error': 'Unsupported language'}), 400
+
+    # Log the code execution
+    code_log = CodeExecutionLog(
+        user_id=user_id,
+        language=language,
+        code=code,
+        output=result.get('output', ''),
+        status=result.get('status', 'error'),
+        timestamp=datetime.utcnow()
+    )
+    db.session.add(code_log)
+    db.session.commit()
+
+    return jsonify(result)
 
 def init_user(username):
     user = User.query.filter_by(username=username).first()

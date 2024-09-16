@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <title>O.A.I.S. Chat Room</title>
     <link rel="stylesheet" href="/static/style.css">
+
+    <!-- Include CodeMirror CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/theme/eclipse.min.css">
 </head>
 <body>
     <div id="container">
@@ -87,12 +91,42 @@
                     <button id="test-gpt2-model" class="btn">Test Local GPT-2</button>
                     <div id="gpt2-response"></div>
                 </div>
+
+                <!-- Code Execution Section -->
+                <div id="code-execution-section">
+                    <h3>Code Interpreter</h3>
+                    <label for="language-select">Language:</label>
+                    <select id="language-select">
+                        <option value="python">Python</option>
+                        <option value="javascript">JavaScript</option>
+                        <option value="bash">Bash</option>
+                    </select>
+                    <textarea id="code-input" placeholder="Write your code here..."></textarea>
+                    <button id="execute-code-btn">Run Code</button>
+                    <div id="execution-status"></div>
+                    <pre id="code-output"></pre>
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- Include CodeMirror CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/theme/eclipse.min.css">
+
     <!-- Include Scripts -->
+    <!-- Include Socket.IO -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.min.js"></script>
+
+    <!-- Include CodeMirror JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.js"></script>
+    <!-- Include Language Modes -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/shell/shell.min.js"></script>
+
+    <!-- Include Your Main JavaScript File -->
     <script src="/static/script.js"></script>
+
 </body>
 </html>

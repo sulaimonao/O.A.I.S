@@ -1,0 +1,36 @@
+The error indicates that Flask cannot locate your application, and as a result, the `flask db migrate` command fails. To resolve this, you need to ensure that Flask knows where to find your application by setting the `FLASK_APP` environment variable.
+
+### Steps to resolve:
+
+1. **Set `FLASK_APP` Environment Variable**:
+   Since your main Flask application is in `main.py`, you should set `FLASK_APP` to `main.py`.
+
+   You can do this in two ways depending on your shell:
+
+   - For **bash/zsh** (Mac/Linux):
+     ```bash
+     export FLASK_APP=main.py
+     ```
+
+   - For **Windows** (Command Prompt):
+     ```bash
+     set FLASK_APP=main.py
+     ```
+
+2. **Retry the migration command**:
+   After setting the `FLASK_APP` environment variable, try running the migration again:
+
+   ```bash
+   flask db migrate
+   flask db upgrade
+   ```
+
+3. **Alternative approach using the `--app` option**:
+   If you prefer not to set the environment variable, you can pass the `--app` option directly in the command:
+
+   ```bash
+   flask --app main.py db migrate
+   flask --app main.py db upgrade
+   ```
+
+This should resolve the issue, and Flask should be able to locate your application. Let me know if you encounter any further problems!

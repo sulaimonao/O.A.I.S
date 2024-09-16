@@ -4,12 +4,12 @@ from models.gpt2_observer import gpt2_restructure_prompt
 from .file_operations import write_file, read_file
 from .code_execution import (
     execute_code,
-    execute_bash_code,
-    execute_js_code,
     create_folder,
     delete_folder,
     create_file,
-    delete_file
+    delete_file,
+    extract_name_from_message,
+    extract_code_from_message
 )
 
 logging.basicConfig(level=logging.DEBUG)
@@ -78,17 +78,17 @@ def handle_task(intent, message):
     if intent == "execute_python_code":
         code = extract_code_from_message(message)
         logging.debug(f"Executing Python code: {code}")
-        return execute_code(code)
+        return execute_code(code, language='python')
 
     if intent == "execute_bash_code":
         code = extract_code_from_message(message)
         logging.debug(f"Executing Bash code: {code}")
-        return execute_bash_code(code)
+        return execute_code(code, language='bash')
 
     if intent == "execute_js_code":
         code = extract_code_from_message(message)
-        logging.debug(f"Executing JS code: {code}")
-        return execute_js_code(code)
+        logging.debug(f"Executing JavaScript code: {code}")
+        return execute_code(code, language='javascript')
 
     return "Unknown intent."
 

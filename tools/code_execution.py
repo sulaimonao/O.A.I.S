@@ -1,7 +1,21 @@
 import subprocess
 import os
+import resource
+import re
+import json
 from tools.task_logging import log_task_result
 
+# Resource Limitation Function
+def limit_resources():
+    """
+    Limit resources for code execution to prevent abuse.
+    """
+    # Limit CPU time to 5 seconds
+    resource.setrlimit(resource.RLIMIT_CPU, (5, 5))
+    # Limit memory usage to 256MB
+    resource.setrlimit(resource.RLIMIT_AS, (256 * 1024 * 1024, 256 * 1024 * 1024))
+
+# Code Extraction Functions
 def extract_name_from_message(message):
     """Extract file or folder name from the message."""
     match = re.search(r'\"(.*?)\"', message)
@@ -12,6 +26,15 @@ def extract_code_from_message(message):
     match = re.search(r"```(.*?)```", message, re.DOTALL)
     return match.group(1) if match else message  # Fallback to the entire message if no code block is found
 
+def extract_code_from_response(response):
+    """
+    Extract code block from the API response.
+    Modify as needed for various languages.
+    """
+    code_block = response.get('choices', [{}])[0].get('message', {}).get('content', '')
+    return code_block
+
+# File and Folder Operations
 def create_folder(folder_name):
     """
     Creates a folder in the system.
@@ -61,20 +84,38 @@ def delete_file(file_name):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-def extract_code_from_response(response):
+# Unified Code Execution Function
+def execute_code(code, language='python'):
     """
-    Extract code block from the API response.
-    Modify as needed for various languages.
+    Executes code in the specified language with resource limits.
     """
-    code_block = response.get('choices', [{}])[0].get('message', {}).get('content', '')
-    return code_block
+    if language == 'python':
+        return execute_python_code(code)
+    elif language == 'bash':
+        return execute_bash_code(code)
+    elif language == 'javascript':
+        return execute_js_code(code)
+    else:
+        return {"status": "error", "output": "Unsupported language"}
 
-def execute_code(code):
+# Language-Specific Code Execution Functions
+def execute_python_code(code):
     """
-    Executes the extracted Python code in a secure environment.
+    Executes Python code with resource limits in place.
     """
     try:
-        result = subprocess.run(['python3', '-c', code], capture_output=True, text=True, timeout=10)
+        # Write code to a temporary file
+        with open('temp_code.py', 'w') as file:
+            file.write(code)
+
+        result = subprocess.run(
+            ['python3', 'temp_code.py'],
+            preexec_fn=limit_resources,
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        os.remove('temp_code.py')  # Clean up the file
         if result.returncode == 0:
             return {"status": "success", "output": result.stdout}
         else:
@@ -89,7 +130,14 @@ def execute_bash_code(bash_command):
     Executes bash commands in a secure environment.
     """
     try:
-        result = subprocess.run(bash_command, capture_output=True, text=True, shell=True, timeout=10)
+        result = subprocess.run(
+            bash_command,
+            preexec_fn=limit_resources,
+            capture_output=True,
+            text=True,
+            shell=True,
+            timeout=10
+        )
         if result.returncode == 0:
             return {"status": "success", "output": result.stdout}
         else:
@@ -104,7 +152,13 @@ def execute_js_code(js_code):
     Executes JavaScript code using Node.js.
     """
     try:
-        result = subprocess.run(['node', '-e', js_code], capture_output=True, text=True, timeout=10)
+        result = subprocess.run(
+            ['node', '-e', js_code],
+            preexec_fn=limit_resources,
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
         if result.returncode == 0:
             return {"status": "success", "output": result.stdout}
         else:
@@ -114,17 +168,35 @@ def execute_js_code(js_code):
     except Exception as e:
         return {"status": "error", "output": str(e)}
 
-def handle_code_execution(api_response):
+# Task Logging Function (Assuming you have a logging mechanism)
+def log_task_result(task_name, execution_result):
+    """
+    Logs the task result for later review.
+    """
+    log_entry = {
+        "task_name": task_name,
+        "status": execution_result.get('status'),
+        "output": execution_result.get('output')
+    }
+    # Ensure the logs directory exists
+    if not os.path.exists('logs'):
+        os.makedirs('logs')
+    with open('logs/execution_log.json', 'a') as log_file:
+        json.dump(log_entry, log_file)
+        log_file.write('\n')  # Add newline to separate entries
+
+# Handling Code Execution from API Response
+def handle_code_execution(api_response, language='python'):
     """
     Handles code execution from the API response.
     """
     # Extract the code
     code = extract_code_from_response(api_response)
-    
+
     # Execute the code and log the result
-    execution_result = execute_code(code)
-    
+    execution_result = execute_code(code, language=language)
+
     # Log the result (whether success or failure)
-    log_task_result(api_response, execution_result)
-    
+    log_task_result("Code Execution", execution_result)
+
     return execution_result

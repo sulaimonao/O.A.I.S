@@ -26,3 +26,17 @@ class Interaction(db.Model):
     task_outcome = db.Column(db.String(50))  # success or failure
     feedback = db.Column(db.String(50))  # User feedback: satisfied, not satisfied
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+class CodeExecutionLog(db.Model):
+    __tablename__ = 'code_execution_logs'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String, nullable=False)
+    language = db.Column(db.String, nullable=False)
+    code = db.Column(db.Text, nullable=False)
+    output = db.Column(db.Text, nullable=True)
+    status = db.Column(db.String, nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<CodeExecutionLog {self.id} - User {self.user_id}>"
