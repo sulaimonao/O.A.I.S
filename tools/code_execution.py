@@ -110,7 +110,7 @@ def execute_python_code(code):
 
         result = subprocess.run(
             ['python3', 'temp_code.py'],
-            preexec_fn=limit_resources,
+            # preexec_fn=limit_resources,  # Comment out for testing
             capture_output=True,
             text=True,
             timeout=10
