@@ -194,3 +194,44 @@ body {
 #local-model-settings {
     margin-top: 20px;
 }
+#code-execution-section {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+#code-input {
+    width: 100%;
+    height: 200px;
+}
+
+#terminal-window {
+    margin-top: 10px;
+    background-color: #1e1e1e;
+    color: white;
+    padding: 10px;
+    height: 200px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+}
+
+#execution-status {
+    margin-top: 10px;
+    font-weight: bold;
+}
+
+button {
+    margin-top: 10px;
+}
+
+#toggle-terminal-btn {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+}
+
+#toggle-terminal-btn:hover {
+    background-color: #0056b3;
+}

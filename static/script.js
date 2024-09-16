@@ -179,6 +179,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const codeTextarea = document.getElementById('code-input');
     const codeOutput = document.getElementById('code-output');
     const executionStatus = document.getElementById('execution-status');
+    const terminalWindow = document.getElementById('terminal-window');
     const languageSelect = document.getElementById('language-select');
 
     const codeEditor = CodeMirror.fromTextArea(codeTextarea, {
@@ -187,6 +188,15 @@ document.addEventListener('DOMContentLoaded', function() {
         theme: 'eclipse',
         indentUnit: 4,
         tabSize: 4
+    });
+
+    // Toggle terminal window visibility
+    document.getElementById('toggle-terminal-btn').addEventListener('click', function() {
+        if (terminalWindow.style.display === 'none' || terminalWindow.style.display === '') {
+            terminalWindow.style.display = 'block';
+        } else {
+            terminalWindow.style.display = 'none';
+        }
     });
 
     languageSelect.addEventListener('change', function() {

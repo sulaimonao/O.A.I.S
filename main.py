@@ -151,6 +151,7 @@ def execute_code_route():
 
     user_id = session.get('user_id', 'anonymous')  # Get user ID or 'anonymous'
 
+    # Execute the code based on the language
     if language == 'python':
         result = execute_python_code(code)
     elif language == 'javascript':
@@ -172,6 +173,7 @@ def execute_code_route():
     db.session.add(code_log)
     db.session.commit()
 
+    # Ensure the result is sent back to the frontend
     return jsonify(result)
 
 def init_user(username):
