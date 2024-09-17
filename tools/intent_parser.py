@@ -52,6 +52,10 @@ def parse_intent(message):
     return "api_request"
 
 def handle_task(intent, message):
+    past_interactions = retrieve_memory(session.get('user_id'), session_id=session.get('session_id'), task_type=intent)
+    if past_interactions and past_interactions[-1].task_outcome == "failure":
+        return "Previous task failed, adjusting approach."
+    # Execute original task logic
     """Handle task based on GPT-2 inferred intent."""
     logging.debug(f"Handling task: {intent} with message: {message}")
 

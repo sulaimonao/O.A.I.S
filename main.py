@@ -21,6 +21,7 @@ from datetime import datetime
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
 from tools.code_execution import execute_python_code, execute_js_code, execute_bash_code
 from data.models import CodeExecutionLog
+from tools.task_logging import log_task_execution
 
 
 # Load local GPT-2 model
@@ -49,7 +50,13 @@ def gpt2_interact():
     data = request.json
     input_text = data.get("input_text", "")
     try:
-        inputs = gpt2_tokenizer(input_text, return_tensors='pt')
+        # Fetch memory to inform the response generation
+        session_id = session.get('session_id')
+        past_interactions = retrieve_memory(session.get('user_id'), session_id)
+        # Merge past interactions with current input
+        memory_prompt = f"{input_text} {past_interactions[-1].prompt}" if past_interactions else input_text
+        
+        inputs = gpt2_tokenizer(memory_prompt, return_tensors='pt')
         outputs = gpt2_model.generate(**inputs, max_new_tokens=100)
         decoded_output = gpt2_tokenizer.decode(outputs[0], skip_special_tokens=True)
         return jsonify({"response": decoded_output})
@@ -76,10 +83,16 @@ def toggle_memory():
         return jsonify({'success': True})
     return jsonify({'error': 'Invalid memory status'}), 400
 
+profile_cache = {}
+
 @app.route('/get_profiles', methods=['GET'])
 def get_profiles():
+    if 'profiles' in profile_cache:
+        return jsonify(profile_cache['profiles'])
+
     users = User.query.all()
     profile_list = [{"id": user.id, "username": user.username} for user in users]
+    profile_cache['profiles'] = profile_list
     return jsonify(profile_list)
 
 @app.route('/create_profile', methods=['POST'])
@@ -162,16 +175,7 @@ def execute_code_route():
         return jsonify({'error': 'Unsupported language'}), 400
 
     # Log the code execution
-    code_log = CodeExecutionLog(
-        user_id=user_id,
-        language=language,
-        code=code,
-        output=result.get('output', ''),
-        status=result.get('status', 'error'),
-        timestamp=datetime.utcnow()
-    )
-    db.session.add(code_log)
-    db.session.commit()
+    log_task_execution(user_id, language, code, result.get('output', ''), result.get('status', 'error'))
 
     # Ensure the result is sent back to the frontend
     return jsonify(result)
@@ -285,6 +289,9 @@ def handle_message(data):
         
         if session.get('memory_enabled', True):
             session_id = create_or_fetch_session(user_id)
+            past_memory = retrieve_memory(user_id, session_id, task_type=intent)
+            if past_memory:
+                emit('message', {'memory': past_memory})
             interaction = Interaction(
                 session_id=session_id,
                 prompt=message,

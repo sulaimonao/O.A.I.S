@@ -10,3 +10,11 @@ def capture_video():
             break
     cap.release()
     cv2.destroyAllWindows()
+
+def log_video_capture(user_id):
+    task_type = 'video_capture'
+    input_code = 'Video capture started'
+    output = 'Video captured successfully'
+    status = 'success'
+
+    log_task_execution(user_id, task_type, input_code, output, status)
