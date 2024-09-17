@@ -1,6 +1,7 @@
 import logging
 import re
 from models.gpt2_observer import gpt2_restructure_prompt
+from models.wordllama_observer import process_with_wordllama
 from .file_operations import write_file, read_file
 from .code_execution import (
     execute_code,
@@ -13,6 +14,24 @@ from .code_execution import (
 )
 
 logging.basicConfig(level=logging.DEBUG)
+
+def parse_intent_with_wordllama(message):
+    """
+    Use WordLlama to analyze the message and determine if an action is required.
+    """
+    embeddings = process_with_wordllama(message)
+    # Use embeddings to refine intent identification logic
+    # For example, cluster or rank possible intents based on the embeddings
+    
+    # Placeholder: Just return "api_request" for now
+    return "api_request"
+
+# Update the handle_task function to use the new parser
+def handle_task_with_wordllama(intent, message):
+    """Handle tasks using WordLlama-enhanced intent parsing."""
+    wordllama_intent = parse_intent_with_wordllama(message)
+    # Proceed with task execution based on identified intent
+    return handle_task(wordllama_intent, message)
 
 def parse_intent_with_gpt2(message):
     """Use GPT-2 to analyze the message and determine if an action is required."""

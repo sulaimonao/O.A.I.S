@@ -4,6 +4,7 @@ import resource
 import re
 import json
 from tools.task_logging import log_task_result
+from models.wordllama_observer import process_with_wordllama
 
 # Resource Limitation Function
 def limit_resources():
@@ -97,6 +98,24 @@ def execute_code(code, language='python'):
         return execute_js_code(code)
     else:
         return {"status": "error", "output": "Unsupported language"}
+
+def execute_code_with_wordllama_support(code, message):
+    """
+    This function executes code and supports WordLlama for prompt analysis.
+    """
+    # Analyze the message with WordLlama if applicable
+    wordllama_output = process_with_wordllama(message)
+    
+    # Proceed with regular code execution logic
+    execution_result = execute_code(code, language='python')
+    
+    # Log the result with WordLlama support information
+    log_task_result("Code Execution with WordLlama", {
+        "wordllama_output": wordllama_output,
+        "execution_result": execution_result
+    })
+    
+    return execution_result
 
 # Language-Specific Code Execution Functions
 def execute_python_code(code):
