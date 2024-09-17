@@ -1,0 +1,253 @@
+/* General Styles */
+:root {
+    --primary-color: #005f73;
+    --secondary-color: #0a9396;
+    --background-color: #fefae0;
+    --header-background: #001219;
+    --header-color: #e9d8a6;
+    --sidebar-background: #f4f1de;
+    --chat-background: #ffffff;
+    --font-family-main: 'Poppins', sans-serif;
+    --accent-color: #94d2bd;
+}
+
+body {
+    font-family: var(--font-family-main);
+    margin: 0;
+    background-color: var(--background-color);
+}
+
+#header {
+    background-color: var(--header-background);
+    color: var(--header-color);
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+#header-content {
+    display: flex;
+    align-items: center;
+}
+
+#logo {
+    height: 50px;
+    margin-right: 10px;
+}
+
+#nav-menu ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+}
+
+#nav-menu ul li {
+    margin-right: 15px;
+}
+
+#nav-menu ul li a {
+    color: var(--header-color);
+    text-decoration: none;
+    font-weight: bold;
+}
+
+#user-menu {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+}
+
+#user-avatar {
+    width: 40px;
+    border-radius: 50%;
+}
+
+#user-dropdown {
+    display: none;
+    position: absolute;
+    right: 0;
+    background-color: var(--sidebar-background);
+    min-width: 150px;
+    box-shadow: 0px 8px 16px rgba(0,0,0,0.2);
+    z-index: 1;
+}
+
+#user-dropdown ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#user-dropdown ul li a {
+    color: #000;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+}
+
+#user-dropdown ul li a:hover {
+    background-color: #ddd;
+}
+
+#user-dropdown.show {
+    display: block;
+}
+
+#content {
+    display: flex;
+}
+
+#sidebar {
+    width: 250px;
+    background-color: var(--sidebar-background);
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+#main-section {
+    flex: 1;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+h2 {
+    margin-top: 0;
+    color: var(--primary-color);
+}
+
+label {
+    display: block;
+    margin-top: 10px;
+}
+
+input[type="text"],
+input[type="number"],
+select,
+textarea {
+    width: 100%;
+    padding: 8px;
+    margin-top: 5px;
+    box-sizing: border-box;
+}
+
+button {
+    margin-top: 10px;
+    padding: 10px 15px;
+    background-color: var(--primary-color);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+button:hover {
+    background-color: var(--secondary-color);
+}
+
+/* Chat Styles */
+#chat-history {
+    border: 1px solid #ccc;
+    padding: 10px;
+    height: 300px;
+    overflow-y: scroll;
+    background-color: var(--chat-background);
+}
+
+.user-message,
+.assistant-message {
+    margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.user-message {
+    background-color: var(--accent-color);
+    text-align: right;
+}
+
+.assistant-message {
+    background-color: var(--secondary-color);
+    text-align: left;
+}
+
+#chat-form {
+    display: flex;
+    margin-top: 10px;
+}
+
+#user-input {
+    flex: 1;
+    padding: 8px;
+}
+
+#chat-form button {
+    margin-left: 10px;
+}
+
+/* Code Execution Styles */
+#code-execution-section {
+    margin-top: 20px;
+}
+
+.CodeMirror {
+    border: 1px solid #ccc;
+    height: 200px;
+}
+
+#terminal-window {
+    margin-top: 10px;
+    background-color: #1e1e1e;
+    color: #fff;
+    padding: 10px;
+    height: 200px;
+    overflow-y: scroll;
+}
+
+/* File Upload Styles */
+#file-upload-section,
+#code-file-upload {
+    margin-top: 20px;
+}
+
+#files-list,
+#bluetooth-devices-list,
+#usb-devices-list {
+    list-style: none;
+    padding: 0;
+}
+
+#files-list li,
+#bluetooth-devices-list li,
+#usb-devices-list li {
+    margin-bottom: 5px;
+}
+
+#files-list li button,
+#bluetooth-devices-list li button,
+#usb-devices-list li button {
+    margin-left: 10px;
+}
+
+.error-message {
+    color: red;
+}
+
+.status-indicator {
+    font-weight: bold;
+}
+
+.status-success {
+    color: green;
+}
+
+.status-error {
+    color: red;
+}
+
+#memory-settings,
+#profile-management,
+#settings {
+    margin-bottom: 20px;
+}

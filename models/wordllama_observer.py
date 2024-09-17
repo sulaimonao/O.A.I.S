@@ -63,9 +63,3 @@ def self_train_wordllama(execution_result, task_details):
         pickle.dump(model_data, file)
 
     print("WordLlama model updated with self-training and pruning.")
-
-# Example of using the function
-if __name__ == "__main__":
-    prompt = "Analyze this sentence."
-    result = process_with_wordllama(prompt)
-    print(f"Processed result: {result}")
