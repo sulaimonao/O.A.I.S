@@ -42,8 +42,20 @@ client = OpenAI(api_key=Config.OPENAI_API_KEY)
 genai.configure(api_key=Config.GOOGLE_API_KEY)
 
 @app.route('/')
-def index():
-    return render_template('index.html')
+def home():
+    return render_template('home.html')  # Assuming home.html is the main landing page
+
+@app.route('/dashboard')
+def dashboard():
+    return render_template('home.html')
+
+@app.route('/profile')
+def profile():
+    return render_template('profiles.html')
+
+@app.route('/settings')
+def settings():
+    return render_template('settings.html')
 
 @app.route('/api/gpt2_interact', methods=['POST'])
 def gpt2_interact():
@@ -53,13 +65,19 @@ def gpt2_interact():
         # Fetch memory to inform the response generation
         session_id = session.get('session_id')
         past_interactions = retrieve_memory(session.get('user_id'), session_id)
-        # Merge past interactions with current input
-        memory_prompt = f"{input_text} {past_interactions[-1].prompt}" if past_interactions else input_text
+
+        # Handle new users or no past interactions gracefully
+        if not past_interactions:
+            memory_prompt = input_text
+        else:
+            memory_prompt = f"{input_text} {past_interactions[-1].prompt}"
         
+        # Generate GPT-2 response
         inputs = gpt2_tokenizer(memory_prompt, return_tensors='pt')
         outputs = gpt2_model.generate(**inputs, max_new_tokens=100)
         decoded_output = gpt2_tokenizer.decode(outputs[0], skip_special_tokens=True)
         return jsonify({"response": decoded_output})
+    
     except Exception as e:
         logging.error(f"Error generating GPT-2 response: {str(e)}")
         return jsonify({"error": f"Failed to generate GPT-2 response: {str(e)}"}), 500
@@ -99,10 +117,15 @@ def get_profiles():
 def create_profile():
     data = request.get_json()
     username = data.get('username')
-    if username:
-        user = init_user(username)
+    if not username:
+        return jsonify({'error': 'Invalid username'}), 400  # Handle missing username
+
+    user = init_user(username)
+    if user:
+        session['user_id'] = user.id  # Store user ID in session
         return jsonify({'success': True, 'id': user.id})
-    return jsonify({'error': 'Invalid username'}), 400
+    else:
+        return jsonify({'error': 'Failed to create user profile. Please try again.'}), 500  # Handle user creation failure
 
 @app.route('/upload', methods=['POST'])
 def upload():
@@ -181,22 +204,35 @@ def execute_code_route():
     return jsonify(result)
 
 def init_user(username):
-    user = User.query.filter_by(username=username).first()
-    if not user:
-        user = User(username=username, profile_data={})
-        db.session.add(user)
-        db.session.commit()
-    return user
+    try:
+        # Check if user already exists
+        user = User.query.filter_by(username=username).first()
+        if not user:
+            user = User(username=username, profile_data={})
+            db.session.add(user)
+            db.session.commit()
+            logging.info(f"New user created: {username}")
+        else:
+            logging.info(f"User {username} already exists.")
+        return user
+    except Exception as e:
+        logging.error(f"Error creating user {username}: {str(e)}")
+        return None
 
-def create_or_fetch_session(user_id):
+def create_or_fetch_session():
     user_id = session.get('user_id')
     if not user_id:
-        # Handle the case where user_id is not available
         logging.error("User ID not found in session.")
-        emit('message', {'error': 'User not logged in.'})
-        return
-    if not user_id:
-        raise ValueError("User ID is required to create or fetch session.")
+        # Redirect the user to profile creation or emit error
+        return jsonify({"error": "User not logged in. Please create a profile."}), 401  # Unauthorized response
+    
+    session_data = Session.query.filter_by(user_id=user_id, start_time=datetime.utcnow().date()).first()
+    if not session_data:
+        session_data = Session(user_id=user_id, topic="Default", model_used="gpt-2")
+        db.session.add(session_data)
+        db.session.commit()
+    return session_data.id
+
     
     session = Session.query.filter_by(user_id=user_id, start_time=datetime.utcnow().date()).first()
     if not session:

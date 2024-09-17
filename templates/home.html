@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+<div id="chat-container">
+    <h2>Chat with LLMs</h2>
+    <div id="chat-history"></div>
+    <form id="chat-form">
+        <input type="text" id="user-input" placeholder="Type your message here..." required>
+        <button type="submit">Send</button>
+    </form>
+</div>
+<div id="code-editor-container">
+    <h2>Code Execution</h2>
+    <select id="language-select">
+        <option value="python">Python</option>
+        <option value="javascript">JavaScript</option>
+        <option value="bash">Bash</option>
+    </select>
+    <textarea id="code-input" placeholder="Write your code here..."></textarea>
+    <button id="execute-code-btn">Run Code</button>
+    <div id="execution-status"></div>
+    <pre id="code-output"></pre>
+</div>
+{% endblock %}

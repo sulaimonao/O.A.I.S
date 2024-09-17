@@ -21,3 +21,6 @@ class Config:
     SQLALCHEMY_DATABASE_URI = f"sqlite:///{os.path.join(basedir, 'data/oais.db')}"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SECRET_KEY = os.getenv('SECRET_KEY', 'default_secret_key')
+
+    #Pruning Parameters
+    PRUNING_THRESHOLD = 0.01  # Minimum importance score for pruning embeddings

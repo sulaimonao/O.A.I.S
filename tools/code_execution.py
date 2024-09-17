@@ -5,6 +5,9 @@ import re
 import json
 from tools.task_logging import log_task_result
 from models.wordllama_observer import process_with_wordllama
+from models.wordllama_observer import self_train_wordllama
+from tools.pruning_utils import prune_wordllama_embeddings
+
 
 # Resource Limitation Function
 def limit_resources():
@@ -101,20 +104,24 @@ def execute_code(code, language='python'):
 
 def execute_code_with_wordllama_support(code, message):
     """
-    This function executes code and supports WordLlama for prompt analysis.
+    Execute code with WordLlama and self-train or prune as necessary.
     """
-    # Analyze the message with WordLlama if applicable
-    wordllama_output = process_with_wordllama(message)
-    
-    # Proceed with regular code execution logic
+    # Execute the code and log the result
     execution_result = execute_code(code, language='python')
-    
-    # Log the result with WordLlama support information
-    log_task_result("Code Execution with WordLlama", {
-        "wordllama_output": wordllama_output,
-        "execution_result": execution_result
-    })
-    
+
+    # Perform self-training
+    task_details = {"message": message, "execution_result": execution_result}
+    self_train_wordllama(execution_result, task_details)
+
+    # Perform pruning after every X tasks (set your pruning frequency)
+    if should_prune():
+        embeddings, tokenizer = load_wordllama_model()
+        importance_scores = get_importance_scores(embeddings)  # Implement this function
+        pruned_embeddings = prune_wordllama_embeddings(embeddings, importance_scores, Config.PRUNING_THRESHOLD)
+
+        # Save pruned model
+        save_pruned_wordllama(pruned_embeddings, tokenizer)
+
     return execution_result
 
 # Language-Specific Code Execution Functions
