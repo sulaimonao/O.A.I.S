@@ -82,20 +82,9 @@
                     </form>
                 </div>
 
-                <!-- GPT-2 Local Model Section -->
-                <div id="local-model-section">
-                    <h3>Local Model (GPT-2)</h3>
-                    <div id="local-model-status">
-                        <span id="gpt2-status" class="status-indicator">Status: Loading...</span>
-                    </div>
-                    <button id="test-gpt2-model" class="btn">Test Local GPT-2</button>
-                    <div id="gpt2-response"></div>
-                </div>
-
-               <!-- Code Execution Section -->
-                <div id="code-execution-section">
+                <!-- Code Execution Section -->
+                <div id="code-editor-container">
                     <h3>Code Interpreter</h3>
-                    
                     <label for="language-select">Language:</label>
                     <select id="language-select">
                         <option value="python">Python</option>
@@ -104,16 +93,25 @@
                     </select>
                     
                     <textarea id="code-input" placeholder="Write your code here..."></textarea>
-                    
                     <button id="execute-code-btn">Run Code</button>
                     <button id="toggle-terminal-btn">Toggle Terminal</button>
-                    
+
                     <div id="execution-status"></div>
                     
-                    <!-- Terminal Window (initially hidden) -->
+                    <!-- Terminal Window -->
                     <div id="terminal-window" style="display: none;">
                         <pre id="code-output"></pre>
                     </div>
+                </div>
+
+                <!-- GPT-2 Local Model Section -->
+                <div id="local-model-section">
+                    <h3>Local Model (GPT-2)</h3>
+                    <div id="local-model-status">
+                        <span id="gpt2-status" class="status-indicator">Status: Loading...</span>
+                    </div>
+                    <button id="test-gpt2-model" class="btn">Test Local GPT-2</button>
+                    <div id="gpt2-response"></div>
                 </div>
             </div>
         </div>

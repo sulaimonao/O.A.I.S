@@ -164,17 +164,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Save GPT-2 Settings
-    document.getElementById('save-gpt2-settings').addEventListener('click', function() {
-        const maxTokens = parseInt(document.getElementById('gpt2-max-tokens').value, 10);
-        if (isNaN(maxTokens) || maxTokens <= 0) {
-            alert('Please enter a valid number for Max Tokens.');
-            return;
-        }
-        // Save the maxTokens value as needed
-        alert('GPT-2 settings saved successfully!');
-    });
-
     // CodeMirror Editor Setup
     const codeTextarea = document.getElementById('code-input');
     const codeOutput = document.getElementById('code-output');
