@@ -1,98 +1,84 @@
-# main.py
 import os
 import json
 import logging
-from flask import Flask, render_template, request, jsonify, session, send_from_directory
+from flask import Flask, render_template, request, jsonify, session as flask_session, send_from_directory
 from flask_socketio import SocketIO, emit
 from flask_sqlalchemy import SQLAlchemy
+from flask_session import Session as FlaskSession
 from flask_migrate import Migrate
+from openai import OpenAI
+import google.generativeai as genai
 from config import Config
 from tools.intent_parser import parse_intent_with_gpt2, handle_task
+from models.gpt2_observer import gpt2_restructure_prompt
+from tools.file_operations import read_file, write_file
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
 from tools.code_execution import execute_python_code, execute_js_code, execute_bash_code
-from data.memory import retrieve_memory
-from models.gpt2_observer import gpt2_restructure_prompt
-import google.generativeai as genai
-import openai
 from data.models import db, User, Session, Interaction
-from tools.task_logging import log_task_execution
+from data.memory import retrieve_memory
 from datetime import datetime
 
-# Load local GPT-2 model
-gpt2_model_path = "models/local_gpt2"
-gpt2_tokenizer = GPT2Tokenizer.from_pretrained(gpt2_model_path)
-gpt2_model = GPT2LMHeadModel.from_pretrained(gpt2_model_path)
-
-# Flask app setup
+# Flask app initialization
 app = Flask(__name__)
 app.config.from_object(Config)
-app.secret_key = app.config['SECRET_KEY']
 
-# Initialize database and migrations
-db.init_app(app)
-migrate = Migrate(app, db)
+# Setting the session type in the configuration
+app.config['SESSION_TYPE'] = 'filesystem'
 
-# Initialize socket and logging
+# Initialize Flask-Session
+sess = FlaskSession()  # Renaming to avoid conflict
+sess.init_app(app)
+
+# Other initializations
 socketio = SocketIO(app)
-logging.basicConfig(level=logging.DEBUG)
+db = SQLAlchemy(app)
+migrate = Migrate(app, db)  # Integrating database migration
 
-# Initialize OpenAI and Google Gemini
-openai.api_key = Config.OPENAI_API_KEY
-genai.configure(api_key=Config.GOOGLE_API_KEY)
+# Setting up GPT-2 tokenizer and model
+tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+model = GPT2LMHeadModel.from_pretrained('gpt2')
 
-# Routes
-
+# Routes and Task Handlers
 @app.route('/')
-def home():
-    return render_template('index.html')  # Main landing page
-
-# Update routes to render 'index.html' since other templates don't exist
-@app.route('/dashboard')
-def dashboard():
+def index():
     return render_template('index.html')
 
-@app.route('/profile')
-def profile():
-    return render_template('index.html')
+@app.route('/uploads/<path:filename>')
+def download_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-@app.route('/settings')
-def settings():
-    return render_template('index.html')
-
-# API for GPT-2 Interaction
-@app.route('/api/gpt2_interact', methods=['POST'])
-def gpt2_interact():
+@app.route('/intent', methods=['POST'])
+def handle_intent():
     data = request.json
-    input_text = data.get("input_text", "")
-    try:
-        session_id = session.get('session_id')
-        past_interactions = retrieve_memory(session.get('user_id'), session_id)
-        if not past_interactions:
-            memory_prompt = input_text
-        else:
-            memory_prompt = f"{input_text} {past_interactions[-1].prompt}"
+    intent = data.get('intent')
+    response = handle_task(intent)
+    return jsonify({'response': response})
 
-        inputs = gpt2_tokenizer(memory_prompt, return_tensors='pt')
-        outputs = gpt2_model.generate(**inputs, max_new_tokens=100)
-        decoded_output = gpt2_tokenizer.decode(outputs[0], skip_special_tokens=True)
-        return jsonify({"response": decoded_output})
+@app.route('/code_execution', methods=['POST'])
+def execute_code():
+    data = request.json
+    code_type = data.get('code_type')
+    code = data.get('code')
+    if code_type == 'python':
+        result = execute_python_code(code)
+    elif code_type == 'javascript':
+        result = execute_js_code(code)
+    elif code_type == 'bash':
+        result = execute_bash_code(code)
+    else:
+        result = "Unsupported code type."
+    return jsonify({'result': result})
 
-    except Exception as e:
-        logging.error(f"Error generating GPT-2 response: {str(e)}")
-        return jsonify({"error": f"Failed to generate GPT-2 response: {str(e)}"}), 500
+# GPT-2 based intent handler
+@app.route('/gpt2_intent', methods=['POST'])
+def gpt2_intent():
+    data = request.json
+    prompt = data.get('prompt')
+    structured_prompt = gpt2_restructure_prompt(prompt)
+    response = parse_intent_with_gpt2(structured_prompt)
+    return jsonify({'response': response})
 
-# Check GPT-2 status
-@app.route('/api/gpt2_status', methods=['GET'])
-def gpt2_status():
-    try:
-        inputs = gpt2_tokenizer("Test", return_tensors='pt')
-        gpt2_model.generate(**inputs)
-        return jsonify({'status': 'operational'})
-    except Exception as e:
-        logging.error(f"Error loading GPT-2 model: {str(e)}")
-        return jsonify({'status': 'error', 'error': str(e)})
-
-# Toggle memory settings
+# Memory retrieval and profile management
 @app.route('/toggle_memory', methods=['POST'])
 def toggle_memory():
     data = request.get_json()
@@ -102,7 +88,6 @@ def toggle_memory():
         return jsonify({'success': True})
     return jsonify({'error': 'Invalid memory status'}), 400
 
-# Get and create profiles
 @app.route('/get_profiles', methods=['GET'])
 def get_profiles():
     users = User.query.all()
@@ -113,134 +98,53 @@ def get_profiles():
 def create_profile():
     data = request.get_json()
     username = data.get('username')
-    if not username:
-        return jsonify({'error': 'Invalid username'}), 400
-    user = init_user(username)
-    if user:
-        session['user_id'] = user.id
+    if username:
+        user = init_user(username)
         return jsonify({'success': True, 'id': user.id})
-    return jsonify({'error': 'Failed to create profile. Please try again.'}), 500
+    return jsonify({'error': 'Invalid username'}), 400
 
-# Upload File Route
-@app.route('/upload', methods=['POST'])
-def upload():
-    files = request.files.getlist('file')
-    if not files:
-        return jsonify({'error': 'No files selected'})
-    filenames = []
-    for file in files:
-        if file.filename == '':
-            continue
-        filepath = os.path.join('uploads', file.filename)
-        file.save(filepath)
-        filenames.append(file.filename)
-    if filenames:
-        return jsonify({'filenames': filenames})
-    else:
-        return jsonify({'error': 'No files uploaded'})
-
-# Download File Route
-@app.route('/download/<filename>', methods=['GET'])
-def download_file(filename):
-    return send_from_directory('uploads', filename, as_attachment=True)
-
-# Delete File Route
-@app.route('/delete_file/<filename>', methods=['DELETE'])
-def delete_file(filename):
-    filepath = os.path.join('uploads', filename)
-    if os.path.exists(filepath):
-        os.remove(filepath)
-        return jsonify({'success': True})
-    else:
-        return jsonify({'error': 'File not found'}), 404
-
-# Get Uploaded Files
-@app.route('/get_uploaded_files', methods=['GET'])
-def get_uploaded_files():
-    files = os.listdir('uploads')
-    return jsonify(files)
-
-# Save and retrieve settings
 @app.route('/save_settings', methods=['POST'])
 def save_settings():
     data = request.get_json()
     session['provider'] = data.get('provider', 'openai')
-    session['model'] = data.get('model', 'gpt-4')
+    session['model'] = data.get('model', 'gpt-4o')
     session['memory_enabled'] = data.get('memory_enabled', True)
-    session['temperature'] = data.get('temperature', Config.TEMPERATURE)
-    session['max_tokens'] = data.get('maxTokens', Config.MAX_TOKENS)
-    session['top_p'] = data.get('topP', Config.TOP_P)
     logging.debug(f"Settings saved: {session}")
     return jsonify({'success': True})
 
 @app.route('/get_settings', methods=['GET'])
 def get_settings():
     provider = session.get('provider', 'openai')
-    model = session.get('model', 'gpt-4')
+    model = session.get('model', 'gpt-4o')
     memory_enabled = session.get('memory_enabled', True)
-    temperature = session.get('temperature', Config.TEMPERATURE)
-    max_tokens = session.get('max_tokens', Config.MAX_TOKENS)
-    top_p = session.get('top_p', Config.TOP_P)
+    logging.debug(f"Settings retrieved: Provider={provider}, Model={model}, Memory Enabled={memory_enabled}")
     return jsonify({
         'provider': provider,
         'model': model,
-        'memory_enabled': memory_enabled,
-        'temperature': temperature,
-        'maxTokens': max_tokens,
-        'topP': top_p
+        'memory_enabled': memory_enabled
     })
 
-# Code Execution Route
-@app.route('/execute_code', methods=['POST'])
-def execute_code_route():
-    data = request.get_json()
-    code = data.get('code', '')
-    language = data.get('language', 'python')
-
-    if not code:
-        return jsonify({'error': 'No code provided'}), 400
-
-    user_id = session.get('user_id', 'anonymous')
-
-    if language == 'python':
-        result = execute_python_code(code)
-    elif language == 'javascript':
-        result = execute_js_code(code)
-    elif language == 'bash':
-        result = execute_bash_code(code)
-    else:
-        return jsonify({'error': 'Unsupported language'}), 400
-
-    log_task_execution(user_id, language, code, result.get('output', ''), result.get('status', 'error'))
-    return jsonify(result)
-
-# Initialize user and session
 def init_user(username):
-    try:
-        user = User.query.filter_by(username=username).first()
-        if not user:
-            user = User(username=username, profile_data={})
-            db.session.add(user)
-            db.session.commit()
-            logging.info(f"New user created: {username}")
-        return user
-    except Exception as e:
-        logging.error(f"Error creating user {username}: {str(e)}")
-        return None
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        user = User(username=username, profile_data={})
+        db.session.add(user)
+        db.session.commit()
+    return user
 
-def create_or_fetch_session():
+def create_or_fetch_session(user_id):
     user_id = session.get('user_id')
     if not user_id:
-        return jsonify({"error": "User not logged in. Please create a profile."}), 401
-
-    session_data = Session.query.filter_by(user_id=user_id, start_time=datetime.utcnow().date()).first()
-    if not session_data:
-        session_data = Session(user_id=user_id, topic="Default", model_used="gpt-2")
-        db.session.add(session_data)
+        logging.error("User ID not found in session.")
+        emit('message', {'error': 'User not logged in.'})
+        return
+    session = Session.query.filter_by(user_id=user_id, start_time=datetime.utcnow().date()).first()
+    if not session:
+        session = Session(user_id=user_id, topic="Default", model_used="gpt-2")
+        db.session.add(session)
         db.session.commit()
-    return session_data.id
+    return session.id
 
-# Generate response based on selected provider and model
 def generate_llm_response(prompt, model, provider, config):
     logging.debug(f"Generating response using provider: {provider}, model: {model}")
     try:
@@ -249,11 +153,11 @@ def generate_llm_response(prompt, model, provider, config):
         top_p = config.get('topP', Config.TOP_P)
 
         if provider == 'openai':
-            # OpenAI API call
-            response = openai.ChatCompletion.create(
+            logging.debug('Using OpenAI model')
+            stream = OpenAI(api_key=Config.OPENAI_API_KEY).chat.completions.create(
                 model=model,
                 messages=[
-                    {"role": "system", "content": Config.SYSTEM_PROMPT},
+                    {"role": "system", "content": "You are a helpful assistant."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=temperature,
@@ -261,18 +165,20 @@ def generate_llm_response(prompt, model, provider, config):
                 top_p=top_p,
                 stream=True
             )
+
             content = ""
-            for chunk in response:
-                if 'choices' in chunk and chunk.choices:
-                    delta_content = chunk.choices[0].delta.get('content', '')
+            for chunk in stream:
+                if hasattr(chunk, 'choices') and chunk.choices:
+                    delta_content = chunk.choices[0].delta.content
                     if delta_content:
                         content += delta_content
                         emit('message', {'assistant': delta_content})
+                        logging.debug(f'Streaming response chunk: {delta_content}')
             return {'code': content}
 
         elif provider == 'google':
-            # Google API call
-            genai_model = genai.GenerativeModel('models/' + model)
+            logging.debug('Using Google model')
+            genai_model = genai.GenerativeModel(model)
             response = genai_model.generate_content(prompt)
 
             if hasattr(response, 'candidates') and response.candidates:
@@ -281,18 +187,17 @@ def generate_llm_response(prompt, model, provider, config):
             else:
                 return {'error': 'No valid response from Google API'}
 
-        elif provider == 'local':
-            # Local GPT-2 inference
-            inputs = gpt2_tokenizer(prompt, return_tensors='pt')
-            outputs = gpt2_model.generate(**inputs, max_new_tokens=100)
-            decoded_output = gpt2_tokenizer.decode(outputs[0], skip_special_tokens=True)
+        elif provider in ['local', 'gpt-2-local']:
+            logging.debug('Using Local GPT-2 model')
+            inputs = tokenizer(prompt, return_tensors='pt')
+            outputs = model.generate(**inputs, max_new_tokens=100)
+            decoded_output = tokenizer.decode(outputs[0], skip_special_tokens=True)
             return {'code': decoded_output}
 
     except Exception as e:
-        logging.error(f"Error generating response with {provider} and {model}: {str(e)}")
+        logging.error(f"Error generating response with provider {provider} and model {model}: {str(e)}")
         return {'error': f"Error generating response with {provider} and {model}: {str(e)}"}
 
-# Socket.IO message handling
 @socketio.on('message')
 def handle_message(data):
     logging.debug(f"Received data: {data}")
@@ -301,7 +206,6 @@ def handle_message(data):
     model = data.get('model') or session.get('model', Config.OPENAI_MODEL)
     provider = data.get('provider') or session.get('provider', 'openai')
     config = data.get('config', {})  # Default to empty config if not provided
-    user_id = session.get('user_id', 'anonymous')
 
     intent = parse_intent_with_gpt2(message)
 
@@ -311,10 +215,7 @@ def handle_message(data):
         emit('message', {'feedback_prompt': "Was the task executed correctly? (yes/no)"})
 
         if session.get('memory_enabled', True):
-            session_id = create_or_fetch_session()
-            past_memory = retrieve_memory(user_id, session_id, task_type=intent)
-            if past_memory:
-                emit('message', {'memory': past_memory})
+            session_id = create_or_fetch_session(user_id)
             interaction = Interaction(
                 session_id=session_id,
                 prompt=message,
@@ -335,23 +236,7 @@ def handle_message(data):
     else:
         code_response = generate_llm_response(message, model, provider, config)
         if 'code' in code_response:
-            if provider != 'openai':
-                # Emit assistant message only if not already streamed
-                emit('message', {'assistant': code_response['code']})
-        else:
-            emit('message', {'error': code_response['error']})
-
-    if intent == "retrieve_memory":
-        memory = retrieve_memory(user_id)
-        emit('message', {'memory': memory})
-
-    if intent == "system_health_check":
-        health_data = system_health_check()
-        emit('message', {'response': health_data})
-
-    elif intent == "map_file_system":
-        file_map = map_file_system()
-        emit('message', {'response': file_map})
+            emit('message', {'assistant': code_response['code']})
 
 if __name__ == '__main__':
     if not os.path.exists('uploads'):

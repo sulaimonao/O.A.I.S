@@ -1,7 +1,9 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>O.A.I.S. - Dashboard</title>
     <link rel="stylesheet" href="/static/style.css">
     <!-- Include CodeMirror CSS -->
@@ -102,7 +104,7 @@
                 </div>
             </div>
 
-            <!-- Code Execution Section -->
+            <!-- Code Execution Section with CodeMirror -->
             <div id="code-section" class="section">
                 <h3>Code Interpreter</h3>
                 <label for="language-select">Language:</label>
@@ -156,15 +158,19 @@
         </div>
     </div>
 
-    <!-- Include Socket.IO -->
-    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
-    <!-- Include CodeMirror JS -->
+    <!-- Include Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.js"></script>
-    <!-- Include Language Modes -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/python/python.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/javascript/javascript.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/shell/shell.min.js"></script>
-    <!-- Include Your Main JavaScript File -->
-    <script src="/static/script.js"></script>
+
+    <!-- Load modular JavaScript files -->
+    <script src="/static/profile.js"></script>
+    <script src="/static/settings.js"></script>
+    <script src="/static/chat.js"></script>
+    <script src="/static/codeExecution.js"></script>
+    <script src="/static/fileUpload.js"></script>
+    <script src="/static/uiInteractions.js"></script>
 </body>
 </html>

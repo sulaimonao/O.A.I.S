@@ -24,3 +24,6 @@ class Config:
 
     #Pruning Parameters
     PRUNING_THRESHOLD = 0.01  # Minimum importance score for pruning embeddings
+
+    # enable filesystem-based sessions or another valid type
+    SESSION_TYPE = 'filesystem'
