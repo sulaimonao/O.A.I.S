@@ -29,6 +29,10 @@ gpt2_model_path = "models/local_gpt2"
 gpt2_tokenizer = GPT2Tokenizer.from_pretrained(gpt2_model_path)
 gpt2_model = GPT2LMHeadModel.from_pretrained(gpt2_model_path)
 
+# Placeholder WordLlama status check (replace with actual implementation)
+def get_wordllama_status():
+    return {'status': 'operational', 'current_task': 'Idle'}
+
 # Routes updated to ensure proper template rendering
 @app.route('/')
 def home():

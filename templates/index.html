@@ -40,9 +40,19 @@
         </div>
     </header>
 
+    <!-- Status Window -->
+    <div id="status-window">
+        <h3>Model Status</h3>
+        <h4>GPT-2:</h4>
+        <div id="gpt2-status-text">Loading...</div>
+        <div id="gpt2-task-text">Current Task: None</div>
+        <h4>WordLlama:</h4>
+        <div id="wordllama-status-text">Loading...</div>
+        <div id="wordllama-task-text">Current Task: None</div>
+    </div>
+
     <!-- Main Content -->
     <div id="content">
-        <!-- Sidebar Section -->
         <aside id="sidebar">
             <!-- Memory Settings -->
             <div id="memory-settings">
@@ -105,15 +115,11 @@
             <!-- Code Execution Section -->
             <div id="code-section" class="section">
                 <h3>Code Interpreter</h3>
-                <label for="language-select">Language:</label>
-                <select id="language-select">
-                    <option value="python">Python</option>
-                    <option value="javascript">JavaScript</option>
-                    <option value="bash">Bash</option>
-                </select>
-                <textarea id="code-input" placeholder="Write your code here..."></textarea>
-                <button id="execute-code-btn">Run Code</button>
-                <button id="toggle-terminal-btn">Toggle Terminal</button>
+                <div id="editor-container">
+                    <textarea id="code-input" placeholder="Write your code here..."></textarea>
+                    <button id="execute-code-btn">Run Code</button>
+                    <button id="toggle-terminal-btn">Toggle Terminal</button>
+                </div>
                 <div id="execution-status"></div>
                 <div id="terminal-window" style="display: none;">
                     <pre id="code-output"></pre>

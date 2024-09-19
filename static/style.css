@@ -1,3 +1,37 @@
+#status-window {
+    position: fixed;
+    top: 70px;
+    right: 20px;
+    width: 300px;
+    background-color: var(--sidebar-background);
+    border: 1px solid #ccc;
+    padding: 15px;
+    box-shadow: 0px 4px 8px rgba(0,0,0,0.1);
+    z-index: 1000;
+}
+
+#status-window h3 {
+    margin: 0 0 10px;
+    color: var(--primary-color);
+}
+
+#status-window h4 {
+    margin: 5px 0;
+    color: var(--primary-color);
+}
+
+#status-window div {
+    margin: 5px 0;
+}
+
+.status-success {
+    color: green;
+}
+
+.status-error {
+    color: red;
+}
+
 /* General Styles */
 :root {
     --primary-color: #005f73;
