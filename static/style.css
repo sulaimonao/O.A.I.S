@@ -251,3 +251,12 @@ button:hover {
 #settings {
     margin-bottom: 20px;
 }
+
+/* Fixing overlapping issue for chat and code execution sections */
+.section {
+    display: none;
+}
+
+.section.active {
+    display: block;
+}

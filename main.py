@@ -7,77 +7,61 @@ import io
 from flask import Flask, render_template, request, jsonify, session
 from flask_socketio import SocketIO, emit
 from flask_session import Session
-from openai import OpenAI
-import google.generativeai as genai
-from config import Config
-from tools.intent_parser import parse_intent_with_gpt2, handle_task
-from models.gpt2_observer import gpt2_restructure_prompt
-from tools.file_operations import read_file, write_file
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
+from transformers import GPT2Tokenizer, GPT2LMHeadModel
 from data.models import db, User, Session, Interaction
 from data.memory import retrieve_memory
-from datetime import datetime
-from transformers import GPT2Tokenizer, GPT2LMHeadModel
 from tools.code_execution import execute_python_code, execute_js_code, execute_bash_code
-from data.models import CodeExecutionLog
 from tools.task_logging import log_task_execution
+from tools.intent_parser import parse_intent_with_gpt2, handle_task
+from config import Config  # Import Config class from config.py
+from datetime import datetime
 
+app = Flask(__name__)
+app.config.from_object(Config)  # Use the imported Config class
+app.secret_key = Config.SECRET_KEY
 
-# Load local GPT-2 model
+db.init_app(app)
+socketio = SocketIO(app)
+logging.basicConfig(level=logging.DEBUG)
+
+# Initialize GPT-2 model
 gpt2_model_path = "models/local_gpt2"
 gpt2_tokenizer = GPT2Tokenizer.from_pretrained(gpt2_model_path)
 gpt2_model = GPT2LMHeadModel.from_pretrained(gpt2_model_path)
 
-app = Flask(__name__)
-app.config.from_object(Config)
-app.secret_key = os.getenv('SECRET_KEY', 'default_secret_key')
-
-db.init_app(app)
-migrate = Migrate(app, db)
-
-socketio = SocketIO(app)
-logging.basicConfig(level=logging.DEBUG)
-client = OpenAI(api_key=Config.OPENAI_API_KEY)
-genai.configure(api_key=Config.GOOGLE_API_KEY)
-
+# Routes updated to ensure proper template rendering
 @app.route('/')
 def home():
-    return render_template('home.html')  # Assuming home.html is the main landing page
+    return render_template('index.html')  # Rendering the correct template
 
 @app.route('/dashboard')
 def dashboard():
-    return render_template('home.html')
+    return render_template('index.html')
 
 @app.route('/profile')
 def profile():
-    return render_template('profiles.html')
+    return render_template('index.html')
 
 @app.route('/settings')
 def settings():
-    return render_template('settings.html')
+    return render_template('index.html')
 
+# Updated API route to handle missing input gracefully
 @app.route('/api/gpt2_interact', methods=['POST'])
 def gpt2_interact():
     data = request.json
     input_text = data.get("input_text", "")
+    if not input_text:
+        return jsonify({"error": "No input text provided"}), 400
+
     try:
-        # Fetch memory to inform the response generation
         session_id = session.get('session_id')
         past_interactions = retrieve_memory(session.get('user_id'), session_id)
-
-        # Handle new users or no past interactions gracefully
-        if not past_interactions:
-            memory_prompt = input_text
-        else:
-            memory_prompt = f"{input_text} {past_interactions[-1].prompt}"
-        
-        # Generate GPT-2 response
+        memory_prompt = input_text if not past_interactions else f"{input_text} {past_interactions[-1].prompt}"
         inputs = gpt2_tokenizer(memory_prompt, return_tensors='pt')
         outputs = gpt2_model.generate(**inputs, max_new_tokens=100)
         decoded_output = gpt2_tokenizer.decode(outputs[0], skip_special_tokens=True)
         return jsonify({"response": decoded_output})
-    
     except Exception as e:
         logging.error(f"Error generating GPT-2 response: {str(e)}")
         return jsonify({"error": f"Failed to generate GPT-2 response: {str(e)}"}), 500

@@ -1,6 +1,14 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Socket.IO setup
     const socket = io();
+
+    // Show/hide sections based on navigation
+    function showSection(sectionId) {
+        const sections = document.querySelectorAll('.section');
+        sections.forEach(section => {
+            section.style.display = section.id === sectionId ? 'block' : 'none';
+        });
+    }
+    showSection('dashboard-section'); // Default to showing dashboard
 
     // Fetch and populate profiles from the database
     fetch('/get_profiles')
@@ -19,14 +27,12 @@ document.addEventListener('DOMContentLoaded', function() {
     fetch('/get_settings')
     .then(response => response.json())
     .then(data => {
-        // Restore provider, model, and memory settings
         document.getElementById('provider-select').value = data.provider;
         updateModelOptions(data.provider);
         document.getElementById('model-select').value = data.model;
         document.getElementById('memory-toggle').checked = data.memory_enabled;
     });
 
-    // Save settings when changed
     document.getElementById('save-settings').addEventListener('click', function() {
         const provider = document.getElementById('provider-select').value;
         const model = document.getElementById('model-select').value;
@@ -56,9 +62,7 @@ document.addEventListener('DOMContentLoaded', function() {
     fetch('/api/gpt2_status')
     .then(response => response.json())
     .then(data => {
-        // Update status element
         const statusElement = document.getElementById('gpt2-status');
-
         if (data.status === 'operational') {
             statusElement.textContent = 'Status: Operational';
             statusElement.classList.add('status-success');
@@ -236,10 +240,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Variable to keep track of the current assistant message element
     let currentAssistantMessageElement = null;
 
-    // Socket.IO chat functionality
     const chatForm = document.getElementById('chat-form');
     chatForm.addEventListener('submit', function(event) {
         event.preventDefault();
@@ -260,7 +262,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         socket.emit('message', JSON.stringify(data));
 
-        // Add user's message to chat history
         const chatHistory = document.getElementById('chat-history');
         const userMessageElement = document.createElement('div');
         userMessageElement.classList.add('user-message');
@@ -268,26 +269,21 @@ document.addEventListener('DOMContentLoaded', function() {
         chatHistory.appendChild(userMessageElement);
         chatHistory.scrollTop = chatHistory.scrollHeight;
 
-        // Clear the message input
         messageInput.value = '';
 
-        // Reset the current assistant message element
         currentAssistantMessageElement = null;
     });
 
-    // Handle incoming messages from the server
     socket.on('message', function(data) {
         const chatHistory = document.getElementById('chat-history');
 
         if (data.assistant) {
             if (!currentAssistantMessageElement) {
-                // Create a new assistant message element
                 currentAssistantMessageElement = document.createElement('div');
                 currentAssistantMessageElement.classList.add('assistant-message');
                 currentAssistantMessageElement.innerHTML = '<strong>Assistant:</strong> ';
                 chatHistory.appendChild(currentAssistantMessageElement);
             }
-            // Append the new chunk to the assistant message
             currentAssistantMessageElement.innerHTML += data.assistant;
         }
 
@@ -320,7 +316,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         if (data.done) {
-            // Streaming is done
             currentAssistantMessageElement = null;
         }
 
