@@ -1,3 +1,14 @@
+
+/* CSS Custom Properties */
+:root {
+    --sidebar-background: #264653; /* Dark green-blue for sidebar background */
+    --primary-color: #2A9D8F; /* Muted green for primary elements */
+    --secondary-color: #E9C46A; /* Light yellow for secondary elements */
+    --background-color: #FAF3E0; /* Parchment-like background */
+    --text-color: #264653; /* Text color */
+}
+
+
 #status-window {
     position: fixed;
     top: 70px;

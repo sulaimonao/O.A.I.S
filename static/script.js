@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', function() {
     .then(data => {
         // Restore provider, model, and memory settings
         document.getElementById('provider-select').value = data.provider;
-        updateModelOptions(data.provider);  // Update model options based on saved provider
+        updateModelOptions(data.provider);
         document.getElementById('model-select').value = data.model;
         document.getElementById('memory-toggle').checked = data.memory_enabled;
     });
@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', function() {
     .then(response => response.json())
     .then(data => {
         // Update status element
-        const statusElement = document.getElementById('gpt2-status-text');
+        const statusElement = document.getElementById('gpt2-status');
 
         if (data.status === 'operational') {
             statusElement.textContent = 'Status: Operational';
@@ -98,23 +98,15 @@ document.addEventListener('DOMContentLoaded', function() {
         updateModelOptions(provider);
     });
 
-    // Update models based on provider selection
     function updateModelOptions(provider) {
         const modelSelect = document.getElementById('model-select');
         let models = [];
-        switch (provider) {
-            case 'openai':
-                models = ['gpt-4o', 'gpt-4o-mini'];
-                break;
-            case 'google':
-                models = ['gemini-1.5-pro', 'gemini-1.5-flash'];
-                break;
-            case 'local':
-                models = ['gpt-2-local'];
-                break;
-            default:
-                models = [];  // Default empty list for unknown provider
-                break;
+        if (provider === 'openai') {
+            models = ['gpt-4o', 'gpt-4o-mini'];
+        } else if (provider === 'google') {
+            models = ['gemini-1.5-pro', 'gemini-1.5-flash'];
+        } else if (provider === 'local') {
+            models = ['gpt-2-local'];
         }
         modelSelect.innerHTML = models.map(model => `<option value="${model}">${model}</option>`).join('');
     }
@@ -334,7 +326,4 @@ document.addEventListener('DOMContentLoaded', function() {
 
         chatHistory.scrollTop = chatHistory.scrollHeight;
     });
-
-    // Request initial status update on load
-    socket.emit('status_update');
 });

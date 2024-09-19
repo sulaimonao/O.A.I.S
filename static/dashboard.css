@@ -1,0 +1,56 @@
+
+/* dashboard.css */
+#sidebar {
+    width: 250px;
+    background-color: #F4A261; /* Warm desert orange */
+    color: #ffffff;
+    position: fixed;
+    height: 100%;
+    overflow: auto;
+}
+
+#sidebar .sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+#sidebar h1 {
+    font-size: 1.5rem;
+    margin-left: 10px;
+}
+
+#nav-menu ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+#nav-menu ul li {
+    padding: 15px 20px;
+}
+
+#nav-menu ul li a {
+    color: #ffffff;
+    text-decoration: none;
+    display: block;
+}
+
+#nav-menu ul li a:hover {
+    background-color: #E76F51; /* Slightly darker shade for hover */
+}
+
+#main-content {
+    margin-left: 250px;
+    padding: 20px;
+    background-color: #FAF3E0; /* Light parchment background */
+    min-height: 100vh;
+}
+
+.section {
+    margin: 20px 0;
+}
+
+.hidden {
+    display: none;
+}
