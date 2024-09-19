@@ -1,100 +1,79 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>O.A.I.S. - Dashboard</title>
+    <title>O.A.I.S. Chat Room</title>
     <link rel="stylesheet" href="/static/style.css">
+
     <!-- Include CodeMirror CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/theme/eclipse.min.css">
 </head>
 <body>
-    <!-- Header Section -->
-    <header id="header">
-        <div id="header-content">
-            <img src="/static/images/logo3.png" alt="OAIS Logo" id="logo">
-            <h1>OAIS</h1>
-            <!-- Navigation Menu -->
-            <nav id="nav-menu">
-                <ul>
-                    <li><a href="#" onclick="showSection('dashboard')">Dashboard</a></li>
-                    <li><a href="#" onclick="showSection('chat')">Chat</a></li>
-                    <li><a href="#" onclick="showSection('code')">Code</a></li>
-                    <li><a href="#" onclick="showSection('files')">Files</a></li>
-                    <li><a href="#" onclick="showSection('devices')">Devices</a></li>
-                    <li><a href="#" onclick="showSection('history')">History</a></li>
-                    <li><a href="#" onclick="showSection('settings')">Settings</a></li>
-                </ul>
-            </nav>
-            <!-- User Menu -->
-            <div id="user-menu">
-                <img src="/static/images/user.png" alt="User Avatar" id="user-avatar">
-                <div id="user-dropdown">
-                    <ul>
-                        <li><a href="#" onclick="showSection('profile')">Profile</a></li>
-                        <li><a href="#" onclick="showSection('settings')">Settings</a></li>
-                        <li><a href="/logout">Logout</a></li>
-                    </ul>
+    <div id="container">
+        <!-- Header Section -->
+        <header id="header">
+            <div id="header-content">
+                <img src="/static/images/logo3.png" alt="O.A.I.S Logo" id="logo">
+                <h1>O.A.I.S.</h1>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div id="content">
+            <!-- Sidebar Section -->
+            <aside id="sidebar">
+                <!-- Memory Settings -->
+                <div id="memory-settings">
+                    <h2>Memory Settings</h2>
+                    <label for="memory-toggle">Enable Memory:</label>
+                    <input type="checkbox" id="memory-toggle" name="memory-toggle">
                 </div>
-            </div>
-        </div>
-    </header>
 
-    <!-- Main Content -->
-    <div id="content">
-        <!-- Sidebar Section -->
-        <aside id="sidebar">
-            <!-- Memory Settings -->
-            <div id="memory-settings">
-                <h2>Memory Settings</h2>
-                <label for="memory-toggle">Enable Memory:</label>
-                <input type="checkbox" id="memory-toggle" name="memory-toggle">
-            </div>
+                <!-- Profile Management -->
+                <div id="profile-management">
+                    <h2>Profile Management</h2>
+                    <label for="profile-select">Select Profile:</label>
+                    <select id="profile-select" name="profile-select"></select>
+                    <button id="create-profile">Create New Profile</button>
+                </div>
 
-            <!-- Profile Management -->
-            <div id="profile-management">
-                <h2>Profile Management</h2>
-                <label for="profile-select">Select Profile:</label>
-                <select id="profile-select" name="profile-select"></select>
-                <button id="create-profile">Create New Profile</button>
-            </div>
+                <!-- Settings Section -->
+                <div id="settings">
+                    <h2>Settings</h2>
+                    <form id="settings-form">
+                        <label for="provider-select">Choose Provider:</label>
+                        <select id="provider-select">
+                            <option value="openai">OpenAI</option>
+                            <option value="google">Google</option>
+                            <option value="local">Local GPT-2</option>
+                        </select>
+                        <label for="model-select">Choose Model:</label>
+                        <select id="model-select">
+                            <!-- Models will be populated based on provider -->
+                        </select>
+                        <label for="temperature">Temperature:</label>
+                        <input type="number" id="temperature" value="0.9" step="0.1" min="0" max="1">
+                        <label for="max-tokens">Max Tokens:</label>
+                        <input type="number" id="max-tokens" value="4000" step="100" min="1">
+                        <label for="top-p">Top P:</label>
+                        <input type="number" id="top-p" value="1.0" step="0.1" min="0" max="1">
+                        <button type="button" id="save-settings">Save</button>
+                    </form>
+                </div>
 
-            <!-- Settings Section -->
-            <div id="settings">
-                <h2>Settings</h2>
-                <form id="settings-form">
-                    <label for="provider-select">Choose Provider:</label>
-                    <select id="provider-select">
-                        <option value="openai">OpenAI</option>
-                        <option value="google">Google</option>
-                        <option value="local">Local GPT-2</option>
-                    </select>
-                    <label for="model-select">Choose Model:</label>
-                    <select id="model-select"></select>
-                    <label for="temperature">Temperature:</label>
-                    <input type="number" id="temperature" value="0.9" step="0.1" min="0" max="1">
-                    <label for="max-tokens">Max Tokens:</label>
-                    <input type="number" id="max-tokens" value="4000" step="100" min="1">
-                    <label for="top-p">Top P:</label>
-                    <input type="number" id="top-p" value="1.0" step="0.1" min="0" max="1">
-                    <button type="button" id="save-settings">Save</button>
-                </form>
-            </div>
-        </aside>
+                <!-- Local GPT-2 Settings -->
+                <div id="local-model-settings">
+                    <h3>Local GPT-2 Settings</h3>
+                    <label for="gpt2-max-tokens">Max Tokens:</label>
+                    <input type="number" id="gpt2-max-tokens" value="100">
+                    <button id="save-gpt2-settings">Save GPT-2 Settings</button>
+                </div>
+            </aside>
 
-        <!-- Main Section -->
-        <div id="main-section">
-            <!-- Dashboard Section -->
-            <div id="dashboard-section" class="section">
-                <h2>Dashboard</h2>
-                <p>Welcome to your dashboard!</p>
-            </div>
-
-            <!-- Chat Section -->
-            <div id="chat-section" class="section">
-                <h3>Chat</h3>
+            <!-- Main Section -->
+            <div id="main-section">
+                <!-- Chat Section -->
                 <div id="chat-container">
                     <div id="chat-history"></div>
                     <form id="chat-form">
@@ -102,75 +81,59 @@
                         <button type="submit">Send</button>
                     </form>
                 </div>
-            </div>
 
-            <!-- Code Execution Section with CodeMirror -->
-            <div id="code-section" class="section">
-                <h3>Code Interpreter</h3>
-                <label for="language-select">Language:</label>
-                <select id="language-select">
-                    <option value="python">Python</option>
-                    <option value="javascript">JavaScript</option>
-                    <option value="bash">Bash</option>
-                </select>
-                <textarea id="code-input" placeholder="Write your code here..."></textarea>
-                <button id="execute-code-btn">Run Code</button>
-                <button id="toggle-terminal-btn">Toggle Terminal</button>
-                <div id="execution-status"></div>
-                <div id="terminal-window" style="display: none;">
-                    <pre id="code-output"></pre>
+                <!-- Code Execution Section -->
+                <div id="code-editor-container">
+                    <h3>Code Interpreter</h3>
+                    <label for="language-select">Language:</label>
+                    <select id="language-select">
+                        <option value="python">Python</option>
+                        <option value="javascript">JavaScript</option>
+                        <option value="bash">Bash</option>
+                    </select>
+                    
+                    <textarea id="code-input" placeholder="Write your code here..."></textarea>
+                    <button id="execute-code-btn">Run Code</button>
+                    <button id="toggle-terminal-btn">Toggle Terminal</button>
+
+                    <div id="execution-status"></div>
+                    
+                    <!-- Terminal Window -->
+                    <div id="terminal-window" style="display: none;">
+                        <pre id="code-output"></pre>
+                    </div>
                 </div>
-            </div>
 
-            <!-- Files Section -->
-            <div id="files-section" class="section">
-                <h3>File Upload</h3>
-                <input type="file" id="file-upload">
-                <button id="upload-btn">Upload</button>
-                <div id="file-status"></div>
-            </div>
-
-            <!-- Devices Section -->
-            <div id="devices-section" class="section">
-                <h3>Connected Devices</h3>
-                <p>Display your connected devices here.</p>
-            </div>
-
-            <!-- History Section -->
-            <div id="history-section" class="section">
-                <h3>Task History and Logs</h3>
-                <div id="history-container">
-                    <!-- Logs and history of tasks will be displayed here -->
+                <!-- GPT-2 Local Model Section -->
+                <div id="local-model-section">
+                    <h3>Local Model (GPT-2)</h3>
+                    <div id="local-model-status">
+                        <span id="gpt2-status" class="status-indicator">Status: Loading...</span>
+                    </div>
+                    <button id="test-gpt2-model" class="btn">Test Local GPT-2</button>
+                    <div id="gpt2-response"></div>
                 </div>
-            </div>
-
-            <!-- Settings Section -->
-            <div id="settings-section" class="section">
-                <h3>Additional Settings</h3>
-                <!-- Add additional settings components here -->
-            </div>
-
-            <!-- Profile Section -->
-            <div id="profile-section" class="section">
-                <h3>User Profile</h3>
-                <!-- Add profile components here -->
             </div>
         </div>
     </div>
 
+    <!-- Include CodeMirror CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/theme/eclipse.min.css">
+
     <!-- Include Scripts -->
+    <!-- Include Socket.IO -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.min.js"></script>
+
+    <!-- Include CodeMirror JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.js"></script>
+    <!-- Include Language Modes -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/python/python.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/javascript/javascript.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/shell/shell.min.js"></script>
 
-    <!-- Load modular JavaScript files -->
-    <script src="/static/profile.js"></script>
-    <script src="/static/settings.js"></script>
-    <script src="/static/chat.js"></script>
-    <script src="/static/codeExecution.js"></script>
-    <script src="/static/fileUpload.js"></script>
-    <script src="/static/uiInteractions.js"></script>
+    <!-- Include Your Main JavaScript File -->
+    <script src="/static/script.js"></script>
+
 </body>
 </html>
