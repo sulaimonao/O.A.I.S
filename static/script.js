@@ -1,16 +1,8 @@
 document.addEventListener('DOMContentLoaded', function() {
+    // Socket.IO setup
     const socket = io();
 
-    // Show/hide sections
-    function showSection(sectionId) {
-        const sections = document.querySelectorAll('.section');
-        sections.forEach(section => {
-            section.style.display = section.id === sectionId ? 'block' : 'none';
-        });
-    }
-    showSection('dashboard-section'); // Default to showing dashboard
-
-    // Fetch and populate profiles
+    // Fetch and populate profiles from the database
     fetch('/get_profiles')
     .then(response => response.json())
     .then(profiles => {
@@ -23,16 +15,18 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Fetch settings from session
+    // Fetch settings from session and restore
     fetch('/get_settings')
     .then(response => response.json())
     .then(data => {
+        // Restore provider, model, and memory settings
         document.getElementById('provider-select').value = data.provider;
-        updateModelOptions(data.provider);
+        updateModelOptions(data.provider);  // Update model options based on saved provider
         document.getElementById('model-select').value = data.model;
         document.getElementById('memory-toggle').checked = data.memory_enabled;
     });
 
+    // Save settings when changed
     document.getElementById('save-settings').addEventListener('click', function() {
         const provider = document.getElementById('provider-select').value;
         const model = document.getElementById('model-select').value;
@@ -58,36 +52,125 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Update model options based on provider
+    // Check GPT-2 status immediately on load
+    fetch('/api/gpt2_status')
+    .then(response => response.json())
+    .then(data => {
+        // Update status element
+        const statusElement = document.getElementById('gpt2-status-text');
+
+        if (data.status === 'operational') {
+            statusElement.textContent = 'Status: Operational';
+            statusElement.classList.add('status-success');
+        } else {
+            statusElement.textContent = 'Status: Error - ' + data.error;
+            statusElement.classList.add('status-error');
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching GPT-2 status:', error);
+    });
+
+    // Test GPT-2 model interaction
+    document.getElementById('test-gpt2-model').addEventListener('click', function() {
+        const promptText = prompt("Enter a prompt to test GPT-2:");
+        if (promptText) {
+            fetch('/api/gpt2_interact', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ input_text: promptText })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('gpt2-response').textContent = data.response || data.error;
+            })
+            .catch(() => {
+                document.getElementById('gpt2-response').textContent = 'Error generating response.';
+            });
+        }
+    });
+
+    // Update model options based on provider selection
+    document.getElementById('provider-select').addEventListener('change', function() {
+        const provider = this.value;
+        updateModelOptions(provider);
+    });
+
+    // Update models based on provider selection
     function updateModelOptions(provider) {
         const modelSelect = document.getElementById('model-select');
         let models = [];
-        if (provider === 'openai') {
-            models = ['gpt-4o', 'gpt-4o-mini'];
-        } else if (provider === 'google') {
-            models = ['gemini-1.5-pro', 'gemini-1.5-flash'];
-        } else if (provider === 'local') {
-            models = ['gpt-2-local'];
+        switch (provider) {
+            case 'openai':
+                models = ['gpt-4o', 'gpt-4o-mini'];
+                break;
+            case 'google':
+                models = ['gemini-1.5-pro', 'gemini-1.5-flash'];
+                break;
+            case 'local':
+                models = ['gpt-2-local'];
+                break;
+            default:
+                models = [];  // Default empty list for unknown provider
+                break;
         }
         modelSelect.innerHTML = models.map(model => `<option value="${model}">${model}</option>`).join('');
     }
 
-    // Initialize status window elements
-    const gpt2StatusText = document.getElementById('gpt2-status-text');
-    const gpt2TaskText = document.getElementById('gpt2-task-text');
-    const wordllamaStatusText = document.getElementById('wordllama-status-text');
-    const wordllamaTaskText = document.getElementById('wordllama-task-text');
-
-    // Real-time status updates
-    socket.on('status_update', function(data) {
-        gpt2StatusText.textContent = `Status: ${data.gpt2_status}`;
-        gpt2TaskText.textContent = `Current Task: ${data.gpt2_task}`;
-        wordllamaStatusText.textContent = `Status: ${data.wordllama_status}`;
-        wordllamaTaskText.textContent = `Current Task: ${data.wordllama_task}`;
+    // Create Profile
+    document.getElementById('create-profile').addEventListener('click', function() {
+        const username = prompt("Enter new profile name:");
+        if (username) {
+            fetch('/create_profile', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username: username })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Profile created successfully!');
+                    const profileSelect = document.getElementById('profile-select');
+                    const option = document.createElement('option');
+                    option.value = data.id;
+                    option.textContent = username;
+                    profileSelect.appendChild(option);
+                } else {
+                    alert(data.error);
+                }
+            })
+            .catch(() => {
+                alert('Error creating profile.');
+            });
+        }
     });
 
-    // Emit initial status request
-    socket.emit('status_update');
+    // Toggle Memory
+    document.getElementById('memory-toggle').addEventListener('change', function() {
+        const memoryEnabled = this.checked;
+        fetch('/toggle_memory', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ memory_enabled: memoryEnabled })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Memory toggled successfully!');
+            } else {
+                alert(data.error);
+            }
+        })
+        .catch(() => {
+            alert('Error toggling memory.');
+        });
+    });
 
     // CodeMirror Editor Setup
     const codeTextarea = document.getElementById('code-input');
@@ -104,9 +187,13 @@ document.addEventListener('DOMContentLoaded', function() {
         tabSize: 4
     });
 
-    // Toggle terminal visibility
+    // Toggle terminal window visibility
     document.getElementById('toggle-terminal-btn').addEventListener('click', function() {
-        terminalWindow.style.display = (terminalWindow.style.display === 'none') ? 'block' : 'none';
+        if (terminalWindow.style.display === 'none' || terminalWindow.style.display === '') {
+            terminalWindow.style.display = 'block';
+        } else {
+            terminalWindow.style.display = 'none';
+        }
     });
 
     languageSelect.addEventListener('change', function() {
@@ -157,17 +244,31 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Handle chat form submission
-    document.getElementById('chat-form').addEventListener('submit', function(event) {
+    // Variable to keep track of the current assistant message element
+    let currentAssistantMessageElement = null;
+
+    // Socket.IO chat functionality
+    const chatForm = document.getElementById('chat-form');
+    chatForm.addEventListener('submit', function(event) {
         event.preventDefault();
-        const message = document.getElementById('user-input').value.trim();
-        if (message === '') return;
+        const messageInput = document.getElementById('user-input');
+        const message = messageInput.value.trim();
+        if (message === '') {
+            return;
+        }
 
         const provider = document.getElementById('provider-select').value;
         const model = document.getElementById('model-select').value;
 
-        socket.emit('message', JSON.stringify({ message, provider, model }));
+        const data = {
+            message: message,
+            provider: provider,
+            model: model
+        };
 
+        socket.emit('message', JSON.stringify(data));
+
+        // Add user's message to chat history
         const chatHistory = document.getElementById('chat-history');
         const userMessageElement = document.createElement('div');
         userMessageElement.classList.add('user-message');
@@ -175,30 +276,65 @@ document.addEventListener('DOMContentLoaded', function() {
         chatHistory.appendChild(userMessageElement);
         chatHistory.scrollTop = chatHistory.scrollHeight;
 
-        document.getElementById('user-input').value = '';
+        // Clear the message input
+        messageInput.value = '';
+
+        // Reset the current assistant message element
+        currentAssistantMessageElement = null;
     });
 
-    // Display responses
+    // Handle incoming messages from the server
     socket.on('message', function(data) {
         const chatHistory = document.getElementById('chat-history');
-        let messageElement;
 
         if (data.assistant) {
-            messageElement = document.createElement('div');
-            messageElement.classList.add('assistant-message');
-            messageElement.innerHTML = `<strong>Assistant:</strong> ${data.assistant}`;
+            if (!currentAssistantMessageElement) {
+                // Create a new assistant message element
+                currentAssistantMessageElement = document.createElement('div');
+                currentAssistantMessageElement.classList.add('assistant-message');
+                currentAssistantMessageElement.innerHTML = '<strong>Assistant:</strong> ';
+                chatHistory.appendChild(currentAssistantMessageElement);
+            }
+            // Append the new chunk to the assistant message
+            currentAssistantMessageElement.innerHTML += data.assistant;
         }
 
         if (data.error) {
-            messageElement = document.createElement('div');
-            messageElement.classList.add('error-message');
-            messageElement.innerHTML = `<strong>Error:</strong> ${data.error}`;
+            const errorMessage = document.createElement('div');
+            errorMessage.classList.add('error-message');
+            errorMessage.innerHTML = `<strong>Error:</strong> ${data.error}`;
+            chatHistory.appendChild(errorMessage);
         }
 
-        if (messageElement) {
-            chatHistory.appendChild(messageElement);
+        if (data.feedback_prompt) {
+            const feedbackMessage = document.createElement('div');
+            feedbackMessage.classList.add('assistant-message');
+            feedbackMessage.innerHTML = `<strong>Assistant:</strong> ${data.feedback_prompt}`;
+            chatHistory.appendChild(feedbackMessage);
+        }
+
+        if (data.memory) {
+            const memoryMessage = document.createElement('div');
+            memoryMessage.classList.add('assistant-message');
+            memoryMessage.innerHTML = `<strong>Memory:</strong> ${data.memory}`;
+            chatHistory.appendChild(memoryMessage);
+        }
+
+        if (data.response) {
+            const responseMessage = document.createElement('div');
+            responseMessage.classList.add('assistant-message');
+            responseMessage.innerHTML = `<strong>Assistant:</strong> ${data.response}`;
+            chatHistory.appendChild(responseMessage);
+        }
+
+        if (data.done) {
+            // Streaming is done
+            currentAssistantMessageElement = null;
         }
 
         chatHistory.scrollTop = chatHistory.scrollHeight;
     });
+
+    // Request initial status update on load
+    socket.emit('status_update');
 });
