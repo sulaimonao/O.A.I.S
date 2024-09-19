@@ -129,6 +129,10 @@ def create_profile():
     else:
         return jsonify({'error': 'Failed to create user profile. Please try again.'}), 500
 
+@app.route('/chat')
+def chat():
+    return render_template('chat.html')
+
 # File upload API
 @app.route('/upload', methods=['POST'])
 def upload():

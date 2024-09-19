@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>O.A.I.S. - Settings</title>
+    <link rel="stylesheet" href="/static/css/settings.css"> <!-- Link to settings.css -->
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+    <link rel="stylesheet" href="/static/css/theme.css">
+</head>
+<body>
+    <!-- Dropdown Toggle Button -->
+    <div id="settings-toggle">
+        <button id="toggle-settings-btn">
+            <span class="material-symbols-outlined">settings</span>
+        </button>
+    </div>
+
+    <!-- Settings Panel (Initially Hidden) -->
+    <div id="settings-panel" class="hidden">
+        <aside id="sidebar">
+            <!-- Memory Settings -->
+            <div id="memory-settings">
+                <h2>Memory Settings</h2>
+                <label for="memory-toggle">Enable Memory:</label>
+                <input type="checkbox" id="memory-toggle" name="memory-toggle">
+            </div>
+
+            <!-- Profile Management -->
+            <div id="profile-management">
+                <h2>Profile Management</h2>
+                <label for="profile-select">Select Profile:</label>
+                <select id="profile-select" name="profile-select"></select>
+                <button id="create-profile">Create New Profile</button>
+            </div>
+
+            <!-- Settings Section -->
+            <div id="settings">
+                <h2>Settings</h2>
+                <form id="settings-form">
+                    <label for="provider-select">Choose Provider:</label>
+                    <select id="provider-select">
+                        <option value="openai">OpenAI</option>
+                        <option value="google">Google</option>
+                        <option value="local">Local GPT-2</option>
+                    </select>
+                    <label for="model-select">Choose Model:</label>
+                    <select id="model-select"></select>
+                    <label for="temperature">Temperature:</label>
+                    <input type="number" id="temperature" value="0.9" step="0.1" min="0" max="1">
+                    <label for="max-tokens">Max Tokens:</label>
+                    <input type="number" id="max-tokens" value="4000" step="100" min="1">
+                    <label for="top-p">Top P:</label>
+                    <input type="number" id="top-p" value="1.0" step="0.1" min="0" max="1">
+                    <button type="button" id="save-settings">Save</button>
+                </form>
+            </div>
+        </aside>
+    </div>
+
+    <!-- JavaScript for Toggling Settings Panel -->
+    <script src="/static/js/settings.js"></script>
+</body>
+</html>

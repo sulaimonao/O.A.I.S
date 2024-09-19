@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>O.A.I.S. - Dashboard</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/theme/eclipse.min.css">
 </head>
@@ -12,7 +12,7 @@
         <!-- Header Section -->
         <header id="header">
             <div id="header-content">
-                <img src="/static/images/logo3.png" alt="O.A.I.S Logo" id="logo">
+                <img src="/static/img/logo3.png" alt="O.A.I.S Logo" id="logo">
                 <h1>O.A.I.S.</h1>
             </div>
         </header>
@@ -62,7 +62,8 @@
             <!-- Main Section -->
             <div id="main-section">
                 <!-- Chat Section -->
-                <div id="chat-container">
+                <div id="chat-container" class="section">
+                    <h3>Chat Section</h3>
                     <div id="chat-history"></div>
                     <form id="chat-form">
                         <input type="text" id="user-input" placeholder="Type your message here..." autocomplete="off" required>
@@ -71,7 +72,7 @@
                 </div>
 
                 <!-- Code Execution Section -->
-                <div id="code-execution-section">
+                <div id="code-execution-section" class="section">
                     <h3>Code Interpreter</h3>
                     <label for="language-select">Language:</label>
                     <select id="language-select">
@@ -82,18 +83,19 @@
                     <textarea id="code-input" placeholder="Write your code here..."></textarea>
                     <button id="execute-code-btn">Run Code</button>
                     <div id="execution-status"></div>
+                    <button id="toggle-terminal-btn">Toggle Terminal</button>
                     <div id="terminal-window" style="display: none;">
                         <pre id="code-output"></pre>
                     </div>
                 </div>
 
                 <!-- Local Model Section -->
-                <div id="local-model-section">
+                <div id="local-model-section" class="section">
                     <h3>Local Model (GPT-2)</h3>
                     <div id="local-model-status">
                         <span id="gpt2-status" class="status-indicator">Status: Loading...</span>
                     </div>
-                    <button id="test-gpt2-model" class="btn">Test Local GPT-2</button>
+                    <button id="test-gpt2-model">Test Local GPT-2</button>
                     <div id="gpt2-response"></div>
                 </div>
             </div>
@@ -107,7 +109,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/python/python.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/javascript/javascript.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/shell/shell.min.js"></script>
-    <!-- Include Your Main JavaScript File -->
-    <script src="/static/script.js"></script>
+    <!-- Include Main JavaScript File -->
+    <script src="/static/js/script.js"></script>
 </body>
 </html>
