@@ -7,21 +7,26 @@ import io
 from flask import Flask, render_template, request, jsonify, session
 from flask_socketio import SocketIO, emit
 from flask_session import Session
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
-from data.models import db, User, Session, Interaction
+from data.models import db, User, Session as UserSession, Interaction, CodeExecutionLog
 from data.memory import retrieve_memory
 from tools.code_execution import execute_python_code, execute_js_code, execute_bash_code
 from tools.task_logging import log_task_execution
 from tools.intent_parser import parse_intent_with_gpt2, handle_task
-from config import Config  # Import Config class from config.py
+from tools.file_operations import read_file, write_file
+from config import Config
 from datetime import datetime
 from openai import OpenAI  # Example, replace with actual import if different
+import google.generativeai as genai
 
+# Initialize Flask app and configurations
 app = Flask(__name__)
-app.config.from_object(Config)  # Use the imported Config class
-app.secret_key = Config.SECRET_KEY
-
+app.config.from_object(Config)
+app.secret_key = os.getenv('SECRET_KEY', 'default_secret_key')
 db.init_app(app)
+migrate = Migrate(app, db)
 socketio = SocketIO(app)
 logging.basicConfig(level=logging.DEBUG)
 
@@ -30,18 +35,18 @@ gpt2_model_path = "models/local_gpt2"
 gpt2_tokenizer = GPT2Tokenizer.from_pretrained(gpt2_model_path)
 gpt2_model = GPT2LMHeadModel.from_pretrained(gpt2_model_path)
 
-# Initialize OpenAI client
+# Initialize OpenAI and Google API clients
 client = OpenAI(api_key=Config.OPENAI_API_KEY)
+genai.configure(api_key=Config.GOOGLE_API_KEY)
 
 # Placeholder WordLlama status check (replace with actual implementation)
 def get_wordllama_status():
-    # This should be replaced with actual WordLlama status checking
     return {'status': 'operational', 'current_task': 'Idle'}
 
-# Routes updated to ensure proper template rendering
+# Routes for main pages
 @app.route('/')
 def home():
-    return render_template('index.html')  # Rendering the correct template
+    return render_template('index.html')
 
 @app.route('/dashboard')
 def dashboard():
@@ -222,9 +227,9 @@ def create_or_fetch_session():
         logging.error("User ID not found in session.")
         return jsonify({"error": "User not logged in. Please create a profile."}), 401
 
-    session_data = Session.query.filter_by(user_id=user_id, start_time=datetime.utcnow().date()).first()
+    session_data = UserSession.query.filter_by(user_id=user_id, start_time=datetime.utcnow().date()).first()
     if not session_data:
-        session_data = Session(user_id=user_id, topic="Default", model_used="gpt-2")
+        session_data = UserSession(user_id=user_id, topic="Default", model_used="gpt-2")
         db.session.add(session_data)
         db.session.commit()
     return session_data.id
@@ -352,7 +357,7 @@ def handle_status_update():
         emit('status_update', {
             'gpt2': {
                 'status': gpt2_status_text,
-                'current_task': 'Idle'  # Update with actual task if available
+                'current_task': 'Idle'
             },
             'wordllama': wordllama_status
         })
