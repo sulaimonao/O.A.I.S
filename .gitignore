@@ -8,3 +8,4 @@ repo_scan_overview.json
 project_overview.json
 .env copy
 Task_list.md
+backend/.DS_Store

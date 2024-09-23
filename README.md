@@ -1,7 +1,7 @@
 
 # **O.A.I.S.**
 
-![O.A.I.S.](static/images/logo.png)
+![O.A.I.S.](backend/static/img/logo.png)
 
 **O.A.I.S.** is a comprehensive framework for...
 
