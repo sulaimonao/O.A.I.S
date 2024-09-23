@@ -1,0 +1,16 @@
+eventlet
+execnet
+torch==1.10.0
+sounddevice==0.4.2
+opencv-python==4.5.4.58
+pyttsx3==2.90
+Flask
+Flask-SocketIO
+Flask-CORS
+Flask-Session
+Flask-Migrate
+SQLAlchemy
+python-dotenv
+transformers
+openai
+google-generativeai

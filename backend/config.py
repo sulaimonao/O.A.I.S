@@ -1,7 +1,8 @@
+# backend/config.py
+
 import os
 from dotenv import load_dotenv
 from pathlib import Path
-
 
 # Load environment variables from .env file
 load_dotenv()
@@ -18,12 +19,13 @@ class Config:
 
     # Explicitly use the absolute path to your SQLite file to avoid confusion with instance folder
     basedir = Path(__file__).resolve().parent
-    SQLALCHEMY_DATABASE_URI = f"sqlite:///{os.path.join(basedir, 'data/oais.db')}"
+    SQLALCHEMY_DATABASE_URI = f"sqlite:///{os.path.join(basedir, 'database/data/oais.db')}"
+    MIGRATION_DIR = os.path.join(basedir, 'database/migrations')  # Update with the new path
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SECRET_KEY = os.getenv('SECRET_KEY', 'default_secret_key')
 
-    #Pruning Parameters
+    # Pruning Parameters
     PRUNING_THRESHOLD = 0.01  # Minimum importance score for pruning embeddings
 
-    # enable filesystem-based sessions or another valid type
+    # Enable filesystem-based sessions or another valid type
     SESSION_TYPE = 'filesystem'
