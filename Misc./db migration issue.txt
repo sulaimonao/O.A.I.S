@@ -1,5 +1,8 @@
 The error indicates that Flask cannot locate your application, and as a result, the `flask db migrate` command fails. To resolve this, you need to ensure that Flask knows where to find your application by setting the `FLASK_APP` environment variable.
 
+export FLASK_APP=~/O.A.I.S./backend/app.py
+
+
 ### Steps to resolve:
 
 1. **Set `FLASK_APP` Environment Variable**:
